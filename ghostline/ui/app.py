@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from ghostline.logging_config import configure_logging, startup_banner
+from ghostline.media.drm import enable_widevine
+from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
 from ghostline.ui.dashboard import PrivacyDashboard
 from .components import NavigationBar, SettingsDialog
 
@@ -23,14 +25,17 @@ class GhostlineWindow(QMainWindow):
         self.resize(1280, 800)
 
         self.dashboard = PrivacyDashboard()
+        self.compatibility_advisor = StreamingCompatibilityAdvisor()
         self.container_name = "default"
         container_badge = self.dashboard.ensure_container(self.container_name, template="research")
 
         self.web_view = QWebEngineView(self)
+        self.widevine_path = enable_widevine(self.web_view.page().profile())
         self.web_view.load(QUrl(home_url))
         self.web_view.urlChanged.connect(self._update_address_bar)
         self.web_view.urlChanged.connect(self._update_security_state)
         self.web_view.loadFinished.connect(self._show_load_status)
+        self._compatibility_note: str | None = None
 
         self.navigation_bar = NavigationBar(self)
         self.navigation_bar.navigate_requested.connect(self._on_navigate)
@@ -100,6 +105,15 @@ class GhostlineWindow(QMainWindow):
         secure = url.scheme().lower().startswith("https")
         self.navigation_bar.update_security_state(secure, host)
         self.dashboard.record_navigation(self.container_name, url.toString())
+        advisory = self.compatibility_advisor.advisory_for(host or "")
+        if advisory:
+            self._compatibility_note = (
+                f"{advisory.host}: {advisory.symptom} (error {advisory.error_code}). "
+                f"{advisory.remediation}"
+            )
+            self.status_bar.showMessage(self._compatibility_note, 5000)
+        else:
+            self._compatibility_note = None
 
     def _show_load_status(self, ok: bool) -> None:
         message = "Page loaded" if ok else "Failed to load page"
@@ -145,6 +159,12 @@ class GhostlineWindow(QMainWindow):
         alerts = self.dashboard.sandbox_alerts()
         if alerts:
             status_parts.append(f"Sandbox alerts: {len(alerts)}")
+        if self.widevine_path:
+            status_parts.append("DRM: Widevine ready")
+        else:
+            status_parts.append("DRM: Widevine missing")
+        if self._compatibility_note:
+            status_parts.append(f"Compat: {self._compatibility_note}")
         self.status_bar_label.setText("  |  ".join(status_parts))
 
 
