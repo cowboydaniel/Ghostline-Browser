@@ -13,7 +13,7 @@ from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine
 from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
 from ghostline.ui.dashboard import PrivacyDashboard
-from ghostline.ui.interceptor import MimeTypeFixInterceptor, MIME_TYPE_FIX_SCRIPT
+from ghostline.ui.interceptor import MimeTypeFixInterceptor
 from .components import NavigationBar, SettingsDialog
 
 
@@ -44,7 +44,6 @@ class GhostlineWindow(QMainWindow):
         self.web_view.urlChanged.connect(self._update_address_bar)
         self.web_view.urlChanged.connect(self._update_security_state)
         self.web_view.loadFinished.connect(self._show_load_status)
-        self.web_view.loadFinished.connect(self._inject_mime_type_fix)
         self._compatibility_note: str | None = None
 
         self.navigation_bar = NavigationBar(self)
@@ -131,11 +130,6 @@ class GhostlineWindow(QMainWindow):
         message = "Page loaded" if ok else "Failed to load page"
         LOGGER.info("navigation_status", extra={"success": ok, "status_message": message})
         self._refresh_privacy_summary()
-
-    def _inject_mime_type_fix(self, ok: bool) -> None:
-        """Inject JavaScript to handle MIME type issues after page loads."""
-        if ok:
-            self.web_view.page().runJavaScript(MIME_TYPE_FIX_SCRIPT)
 
     def _open_settings(self) -> None:
         dialog = SettingsDialog(self.dashboard, self, container=self.container_name)
