@@ -75,23 +75,34 @@ def _append_flag(flags: str, new_flag: str) -> str:
     return f"{flags} {new_flag}".strip()
 
 
-def enable_widevine(profile: QWebEngineProfile, library_path: Optional[str] = None) -> Optional[str]:
-    """Enable Widevine DRM for the given profile if a library is available.
+def setup_widevine_environment(extra_paths: Iterable[str] | None = None) -> Optional[str]:
+    """Set up Widevine environment variables BEFORE QtWebEngine initialization.
 
-    Returns the library path when successfully configured so callers can surface
-    status to users. The function is idempotent and safe to call multiple times.
+    This must be called before QApplication is created. Returns the library path
+    if Widevine was found and configured.
     """
-
-    library = library_path or find_widevine_library()
-
-    settings = profile.settings()
-    settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
-    settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
-    settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture, False)
+    library = find_widevine_library(extra_paths)
 
     if library:
         flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
         flags = _append_flag(flags, "--enable-widevine-cdm")
         flags = _append_flag(flags, f"--widevine-path={library}")
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = flags
+
     return library
+
+
+def enable_widevine(profile: QWebEngineProfile) -> bool:
+    """Enable Widevine DRM profile settings.
+
+    Should be called after setup_widevine_environment() and after QWebEngineProfile
+    is created. Configures profile-level settings needed for DRM playback.
+    """
+
+    settings = profile.settings()
+    settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
+    settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
+    settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture, False)
+
+    # Check if Widevine was configured via environment variables
+    return "--enable-widevine-cdm" in os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
