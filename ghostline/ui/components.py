@@ -80,6 +80,12 @@ class NavigationBar(QToolBar):
         )
         self.addWidget(self.security_indicator)
 
+        self.container_chip = QLabel("", self)
+        self.container_chip.setStyleSheet(
+            "QLabel { padding: 4px 10px; border-radius: 10px; color: #fff; font-weight: 600; }"
+        )
+        self.addWidget(self.container_chip)
+
     def _handle_address_bar(self) -> None:
         text = self.address_bar.text().strip()
         if text:
@@ -100,18 +106,28 @@ class NavigationBar(QToolBar):
         self.security_indicator.setText(label)
         self.security_indicator.setStyleSheet(style)
 
+    def set_container_badge(self, name: str, color: str, isolation_badge: str) -> None:
+        self.container_chip.setText(f"{name} • {isolation_badge}")
+        self.container_chip.setStyleSheet(
+            f"QLabel {{ padding: 4px 10px; border-radius: 10px; color: #fff; font-weight: 600; background: {color}; }}"
+        )
+
 
 class SettingsDialog(QDialog):
     """Minimal settings surface that maps directly to privacy controls."""
 
-    def __init__(self, dashboard: PrivacyDashboard, parent=None) -> None:
+    def __init__(self, dashboard: PrivacyDashboard, parent=None, container: str = "default") -> None:
         super().__init__(parent)
         self.dashboard = dashboard
+        self.container = container
         self.setWindowTitle("Ghostline Settings")
         self.setMinimumWidth(360)
 
         self.connection_mode = QComboBox(self)
         self.connection_mode.addItems(["standard", "hardened", "laboratory"])
+
+        self.uniformity_preset = QComboBox(self)
+        self.uniformity_preset.addItems(sorted(self.dashboard.uniformity_manager.presets.keys()))
 
         self.ech_checkbox = QCheckBox("Enable Encrypted ClientHello (ECH)", self)
         self.https_only_checkbox = QCheckBox("Enforce HTTPS-Only mode", self)
@@ -126,6 +142,7 @@ class SettingsDialog(QDialog):
 
         form_layout = QFormLayout()
         form_layout.addRow("Connection profile", self.connection_mode)
+        form_layout.addRow("Uniformity preset", self.uniformity_preset)
         form_layout.addRow(privacy_group)
 
         button_box = QDialogButtonBox(
@@ -146,10 +163,13 @@ class SettingsDialog(QDialog):
         self.ech_checkbox.setChecked(self.dashboard.toggles.get("ech", False))
         self.https_only_checkbox.setChecked(self.dashboard.toggles.get("https_only", False))
         self.tor_checkbox.setChecked(self.dashboard.toggles.get("tor", False))
+        current_profile = self.dashboard.uniformity_manager.profile_for(self.container)
+        self.uniformity_preset.setCurrentText(current_profile.name)
 
     def _apply_and_accept(self) -> None:
         self.dashboard.connection_mode = self.connection_mode.currentText()
         self.dashboard.toggle("ech", self.ech_checkbox.isChecked())
         self.dashboard.toggle("https_only", self.https_only_checkbox.isChecked())
         self.dashboard.toggle("tor", self.tor_checkbox.isChecked())
+        self.dashboard.set_uniformity(self.container, self.uniformity_preset.currentText())
         self.accept()
