@@ -63,6 +63,7 @@ class PrivacyDashboard:
     locale: str = "en-US"
     _container_templates: Dict[str, str] = field(default_factory=dict)
     _container_origins: Dict[str, str] = field(default_factory=dict)
+    _container_locales: Dict[str, str] = field(default_factory=dict)
     _last_device_class: Dict[str, Dict[str, str | int]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -81,6 +82,7 @@ class PrivacyDashboard:
             self.ci_orchestrator.tor_controller.isolate_stream(name)
 
         profile_locale = locale or self.locale
+        self._container_locales[name] = profile_locale
         self.uniformity_manager.apply_preset(name, badge.policy.uniformity_preset, locale=profile_locale)
         return badge
 
@@ -164,6 +166,19 @@ class PrivacyDashboard:
             "canvas": self.noise_calibrator.canvas_noise(origin),
             "audio": self.noise_calibrator.audio_noise(origin),
         }
+
+    def screen_dimensions_for(self, container: str) -> Dict[str, int]:
+        """Get randomized screen dimensions for a container.
+
+        Args:
+            container: Container name
+
+        Returns:
+            Dictionary with screen dimension properties
+        """
+        origin = self._container_origins.get(container, "about:blank")
+        bucket_seed = abs(hash(origin)) % 10_000
+        return self.device_randomizer.screen_dimensions(window_id=bucket_seed)
 
     def record_usage_metrics(self, container: str, power_mw: int, cpu_percent: float, bandwidth_kbps: int) -> None:
         self.performance_monitor.record_usage(container, power_mw=power_mw, cpu_percent=cpu_percent, bandwidth_kbps=bandwidth_kbps)

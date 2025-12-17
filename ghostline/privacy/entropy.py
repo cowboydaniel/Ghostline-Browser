@@ -45,6 +45,15 @@ class DeviceRandomizer:
     stability_window: int = 3
     randomized: Dict[int, Dict[str, str | int]] = field(default_factory=dict)
 
+    # Common screen resolutions for bucketing
+    SCREEN_BUCKETS = [
+        {"width": 1920, "height": 1080, "availHeight": 1040},  # Full HD
+        {"width": 1366, "height": 768, "availHeight": 728},    # HD
+        {"width": 1440, "height": 900, "availHeight": 860},    # WXGA+
+        {"width": 1536, "height": 864, "availHeight": 824},    # Common laptop
+        {"width": 2560, "height": 1440, "availHeight": 1400},  # QHD
+    ]
+
     def _bucket(self, window_id: int) -> int:
         return window_id // self.stability_window
 
@@ -60,6 +69,30 @@ class DeviceRandomizer:
                 "platform": rng.choice(["Linux", "Windows", "macOS"]),
             }
         return self.randomized[bucket]
+
+    def screen_dimensions(self, window_id: int) -> Dict[str, int]:
+        """Get randomized screen dimensions for a given window bucket.
+
+        Args:
+            window_id: Window identifier for bucket calculation
+
+        Returns:
+            Dictionary with screen dimension properties
+        """
+        bucket = self._bucket(window_id)
+        material = f"{self.seed}:screen:{bucket}".encode()
+        digest = hashlib.sha256(material).hexdigest()
+        rng = random.Random(int(digest[:8], 16))
+
+        # Pick a random screen bucket
+        screen = rng.choice(self.SCREEN_BUCKETS).copy()
+
+        # Add additional properties
+        screen['availWidth'] = screen['width']
+        screen['colorDepth'] = 24
+        screen['pixelDepth'] = 24
+
+        return screen
 
 
 @dataclass

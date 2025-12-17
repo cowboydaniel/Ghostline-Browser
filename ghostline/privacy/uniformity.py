@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 
-HIGH_ENTROPY_APIS = {"webgl", "webgpu", "audiocontext", "gamepad"}
+HIGH_ENTROPY_APIS = {"webgl", "webgpu", "audiocontext", "gamepad", "battery"}
 
 
 @dataclass
