@@ -13,6 +13,7 @@ from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine
 from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
 from ghostline.ui.dashboard import PrivacyDashboard
+from ghostline.ui.interceptor import MimeTypeFixInterceptor
 from .components import NavigationBar, SettingsDialog
 
 
@@ -34,6 +35,11 @@ class GhostlineWindow(QMainWindow):
 
         self.web_view = QWebEngineView(self)
         self.widevine_path = enable_widevine(self.web_view.page().profile())
+
+        # Install request interceptor to fix MIME type issues
+        interceptor = MimeTypeFixInterceptor()
+        self.web_view.page().profile().setUrlRequestInterceptor(interceptor)
+
         self.web_view.load(QUrl(home_url))
         self.web_view.urlChanged.connect(self._update_address_bar)
         self.web_view.urlChanged.connect(self._update_security_state)
