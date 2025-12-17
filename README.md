@@ -2,6 +2,15 @@
 
 For milestone details, see [ROADMAP.md](ROADMAP.md). The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the roadmap’s privacy goals.
 
+## Phase 1 Foundation Artifacts
+The full Phase 1 foundation is implemented in this repository:
+- Structured logging and deterministic startup (`ghostline/logging_config.py`).
+- Minimal rendering pipeline with deterministic layout tests (`ghostline/rendering/*`, `tests/test_rendering.py`).
+- HTTP/2-first networking client with HTTP/3 placeholder and connection isolation (`ghostline/networking/client.py`, `tests/test_networking.py`).
+- PySide6 shell with reusable navigation/status components (`ghostline/ui/app.py`, `ghostline/ui/components.py`).
+- Privacy baseline with RFP helpers and partitioned storage (`ghostline/privacy/*`, `tests/test_privacy.py`).
+- Sandbox and toolchain helpers to scaffold security and reproducible builds (`ghostline/security/sandbox.py`, `ghostline/devops/toolchain.py`).
+
 ## Vision and Goals
 Build a privacy-first, security-hardened browser that matches Firefox-level usability/performance, delivers Tor Browser-level privacy protections when enabled, and applies best-practice security hardening throughout. Claims of being "untrackable" are avoided; the goal is to measurably reduce tracking and exploitation risk while maintaining practical usability.
 
