@@ -20,11 +20,11 @@ Build a privacy-first, security-hardened browser that matches Firefox-level usab
 * **Supply-chain integrity:** all releases reproducible on at least two independent builders; updates signed with hardware-backed keys; SBOM published per release; 100% dependency pinning and scanning.
 
 ## Architecture Choice
-* **Approach:** Fork **Firefox/Gecko** rather than Chromium.
-  * Tor Browser’s hardening work (RFP, circuit isolation, SOCKS semantics) already exists on Gecko and can be reused/forward-ported.
-  * Firefox offers mature container tab support and a permissions model aligned with fine-grained partitioning.
-  * Gecko’s codebase is more permissive for deep privacy changes (e.g., timer clamping, font whitelisting) than Chromium’s tight Blink/renderer coupling.
-* **Mitigations:** Upstream regularly to minimize divergence; maintain a small, auditable patch set; track ESR branches for stability.
+* **Approach:** Build a custom browser stack from scratch rather than forking an existing engine.
+  * Rendering, networking, storage, and UI layers are designed together to enforce privacy and security constraints end-to-end.
+  * Local-first architecture: all features run entirely on-device with no cloud dependencies while still supporting loading any website.
+  * Extensibility is achieved via well-defined internal interfaces instead of upstream patching.
+* **Mitigations:** Keep the codebase modular for auditability; design APIs that allow future integration of proven components without inheriting legacy attack surface.
 
 ## Anti-Fingerprinting Strategy
 * **RFP-like baseline:** enable Resist Fingerprinting defaults (user agent, screen size bucketing, font whitelist, canvas randomization, time precision reduction, WebGL limits).
