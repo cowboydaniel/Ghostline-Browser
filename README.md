@@ -1,6 +1,6 @@
 # Ghostline Browser Engineering Plan
 
-For milestone details, see [ROADMAP.md](ROADMAP.md). The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the roadmap’s privacy goals. Phase 1 and Phase 2 artifacts are implemented in this repository and exercised by unit tests, so the sections below summarize the *current* prototype rather than future intent.
+The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the project’s privacy goals. Phase 1 and Phase 2 artifacts are implemented in this repository and exercised by unit tests, so the sections below summarize the *current* prototype rather than future intent.
 
 ## Phase 1 Foundation Artifacts
 The full Phase 1 foundation is implemented in this repository and validated by the test suite:
