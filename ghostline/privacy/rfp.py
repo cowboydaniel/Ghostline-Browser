@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import random
 import time
+from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass
 from typing import Dict
 
@@ -13,8 +14,9 @@ TIMER_GRANULARITY_MS = 100
 
 def rounded_time(now: float | None = None) -> float:
     reference = now if now is not None else time.time()
-    rounded = round(reference * 1000 / TIMER_GRANULARITY_MS) * (TIMER_GRANULARITY_MS / 1000)
-    return rounded
+    bucket_steps = round(reference / 0.1)
+    bucket = (bucket_steps % 10) / 10
+    return bucket
 
 
 @dataclass

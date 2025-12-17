@@ -15,6 +15,7 @@ class ConnectionProfile:
     name: str
     alpn_protocols: tuple[str, ...] = ("h3", "h2", "http/1.1")
     allow_coalescing: bool = False
+    https_only: bool = True
     connection_pool: httpx.Client = field(init=False)
 
     def __post_init__(self) -> None:
@@ -26,6 +27,7 @@ class HttpClient:
 
     def __init__(self) -> None:
         self.profiles: Dict[str, ConnectionProfile] = {}
+        self.downgrade_reasons: list[str] = []
 
     def register_profile(self, profile: ConnectionProfile) -> None:
         self.profiles[profile.name] = profile
@@ -37,14 +39,20 @@ class HttpClient:
 
     def fetch(self, url: str, profile: str = "default") -> httpx.Response:
         client = self.get_client(profile)
-        response = client.connection_pool.get(url)
+        normalized = ConnectionGuard.enforce_https(url) if client.https_only else url
+        if normalized != url:
+            self.downgrade_reasons.append(f"upgraded:{url}")
+        response = client.connection_pool.get(normalized)
         response.raise_for_status()
         return response
 
     async def fetch_async(self, url: str, profile: str = "default") -> httpx.Response:
         profile_obj = self.get_client(profile)
+        normalized = ConnectionGuard.enforce_https(url) if profile_obj.https_only else url
+        if normalized != url:
+            self.downgrade_reasons.append(f"upgraded:{url}")
         async with httpx.AsyncClient(http2=True, headers=profile_obj.connection_pool.headers) as client:
-            response = await client.get(url)
+            response = await client.get(normalized)
             response.raise_for_status()
             return response
 
