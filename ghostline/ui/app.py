@@ -122,7 +122,7 @@ class GhostlineWindow(QMainWindow):
 
     def _show_load_status(self, ok: bool) -> None:
         message = "Page loaded" if ok else "Failed to load page"
-        LOGGER.info("navigation_status", extra={"success": ok, "message": message})
+        LOGGER.info("navigation_status", extra={"success": ok, "status_message": message})
         self._refresh_privacy_summary()
 
     def _open_settings(self) -> None:
