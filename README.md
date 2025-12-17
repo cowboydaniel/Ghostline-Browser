@@ -1,22 +1,6 @@
 # Ghostline Browser Engineering Plan
 
-The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the project’s privacy goals. Phase 1 and Phase 2 artifacts are implemented in this repository and exercised by unit tests, so the sections below summarize the *current* prototype rather than future intent.
-
-## Phase 1 Foundation Artifacts
-The full Phase 1 foundation is implemented in this repository and validated by the test suite:
-- Structured logging and deterministic startup (`ghostline/logging_config.py`).
-- Minimal rendering pipeline with deterministic layout tests (`ghostline/rendering/*`, `tests/test_rendering.py`).
-- HTTP/2-first networking client with HTTP/3 placeholder and connection isolation (`ghostline/networking/client.py`, `tests/test_networking.py`).
-- PySide6 shell with reusable navigation/status components plus a status bar fed by the privacy dashboard (`ghostline/ui/app.py`, `ghostline/ui/components.py`).
-- Privacy baseline with RFP helpers and partitioned storage (`ghostline/privacy/*`, `tests/test_privacy.py`).
-- Sandbox and toolchain helpers to scaffold security and reproducible builds (`ghostline/security/sandbox.py`, `ghostline/devops/toolchain.py`).
-
-## Phase 2 Network Privacy Artifacts
-Phase 2 network privacy milestones are also present:
-- Encrypted DNS resolver with ECH toggles and fallback/leak logging (`ghostline/networking/dns.py`).
-- Per-container proxy registry with split-tunnel prevention and leak-test harnesses (`ghostline/networking/proxy.py`, `ghostline/networking/hygiene.py`, `tests/test_phase2.py`).
-- Opt-in Tor controller with circuit isolation, guard pinning, and health tracking (`ghostline/networking/tor.py`, `tests/test_phase2.py`).
-- Privacy dashboard quick toggles surfaced in the UI status bar (`ghostline/ui/dashboard.py`, `ghostline/ui/app.py`).
+The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the project’s privacy goals. 
 
 ## Vision and Goals
 Build a privacy-first, security-hardened browser that matches Firefox-level usability/performance, delivers Tor Browser-level privacy protections when enabled, and applies best-practice security hardening throughout. Claims of being "untrackable" are avoided; the goal is to measurably reduce tracking and exploitation risk while maintaining practical usability.
