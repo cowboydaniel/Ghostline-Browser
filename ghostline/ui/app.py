@@ -8,10 +8,13 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineScript
 
 from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine, setup_widevine_environment
 from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
+from ghostline.privacy.injector import FingerprintInjector
+from ghostline.privacy.rfp import unified_user_agent
 from ghostline.ui.dashboard import PrivacyDashboard
 from ghostline.ui.interceptor import MimeTypeFixInterceptor
 from .components import NavigationBar, SettingsDialog
@@ -37,9 +40,19 @@ class GhostlineWindow(QMainWindow):
         # Enable Widevine profile settings (environment was set up in launch())
         self.widevine_enabled = enable_widevine(self.web_view.page().profile())
 
+        # Set spoofed user agent on profile
+        device = self.dashboard.device_randomizer.randomize(0)
+        ua = unified_user_agent(platform=str(device['platform']) + " x86_64")
+        self.web_view.page().profile().setHttpUserAgent(ua)
+        LOGGER.info("user_agent_set", extra={"user_agent": ua, "platform": device['platform']})
+
         # Install request interceptor to fix MIME type issues
         interceptor = MimeTypeFixInterceptor()
         self.web_view.page().profile().setUrlRequestInterceptor(interceptor)
+
+        # Install anti-fingerprinting script injection
+        self.fp_injector = FingerprintInjector(self.dashboard, self.container_name)
+        self._install_fingerprint_protection()
 
         self.web_view.load(QUrl(home_url))
         self.web_view.urlChanged.connect(self._update_address_bar)
@@ -116,6 +129,10 @@ class GhostlineWindow(QMainWindow):
         secure = url.scheme().lower().startswith("https")
         self.navigation_bar.update_security_state(secure, host)
         self.dashboard.record_navigation(self.container_name, url.toString())
+
+        # Regenerate fingerprint protection for new origin
+        self._install_fingerprint_protection()
+
         advisory = self.compatibility_advisor.advisory_for(host or "")
         if advisory:
             self._compatibility_note = (
@@ -131,6 +148,31 @@ class GhostlineWindow(QMainWindow):
         message = "Page loaded" if ok else "Failed to load page"
         LOGGER.info("navigation_status", extra={"success": ok, "status_message": message})
         self._refresh_privacy_summary()
+
+    def _install_fingerprint_protection(self) -> None:
+        """Install JavaScript that enforces anti-fingerprinting protections."""
+        profile = self.web_view.page().profile()
+        scripts = profile.scripts()
+
+        # Remove old fingerprint script if exists
+        for script in scripts.toList():
+            if script.name() == "ghostline-fingerprint-protection":
+                scripts.remove(script)
+
+        # Generate script for current origin
+        origin = self.dashboard._container_origins.get(self.container_name, "about:blank")
+        script_source = self.fp_injector.generate_script(origin)
+
+        # Create and configure script
+        script = QWebEngineScript()
+        script.setName("ghostline-fingerprint-protection")
+        script.setSourceCode(script_source)
+        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        script.setRunsOnSubFrames(True)
+
+        scripts.insert(script)
+        LOGGER.info("fingerprint_protection_installed", extra={"origin": origin, "container": self.container_name})
 
     def _open_settings(self) -> None:
         dialog = SettingsDialog(self.dashboard, self, container=self.container_name)
