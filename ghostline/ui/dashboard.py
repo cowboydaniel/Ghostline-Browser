@@ -14,6 +14,9 @@ from typing import Dict, List
 from urllib.parse import urlsplit
 
 from ghostline.extensions.platform import ExtensionPackage, ExtensionPlatform
+from ghostline.devops.reliability import PrivacyCIOrchestrator, RolloutController
+from ghostline.operations.incident import CrashTelemetryPipeline, OnCallRotation, RedTeamProgram
+from ghostline.performance.monitor import PerformanceMonitor
 from ghostline.networking.proxy import ProxyRegistry
 from ghostline.permissions.manager import (
     NativeMessagingGuard,
@@ -23,6 +26,7 @@ from ghostline.permissions.manager import (
 )
 from ghostline.privacy.entropy import DeviceRandomizer, EntropyBudget, NoiseCalibrator
 from ghostline.privacy.uniformity import HIGH_ENTROPY_APIS, UniformityManager
+from ghostline.community.publishing import ReleaseCommunicator
 from ghostline.ui.containers import ContainerBadge, ContainerUX
 
 
@@ -48,6 +52,14 @@ class PrivacyDashboard:
     permission_manager: PermissionManager = field(init=False)
     native_messaging_guard: NativeMessagingGuard = field(default_factory=lambda: NativeMessagingGuard(set()))
     extension_platform: ExtensionPlatform = field(default_factory=ExtensionPlatform)
+    ci_orchestrator: PrivacyCIOrchestrator = field(default_factory=PrivacyCIOrchestrator)
+    rollout_controller: RolloutController = field(default_factory=RolloutController)
+    telemetry_pipeline: CrashTelemetryPipeline = field(default_factory=CrashTelemetryPipeline)
+    red_team_program: RedTeamProgram = field(default_factory=RedTeamProgram)
+    oncall: OnCallRotation = field(default_factory=OnCallRotation)
+    performance_monitor: PerformanceMonitor = field(default_factory=PerformanceMonitor)
+    release_communicator: ReleaseCommunicator = field(default_factory=ReleaseCommunicator)
+    usability_findings: List[str] = field(default_factory=list)
     locale: str = "en-US"
     _container_templates: Dict[str, str] = field(default_factory=dict)
     _container_origins: Dict[str, str] = field(default_factory=dict)
@@ -63,6 +75,10 @@ class PrivacyDashboard:
         if badge is None:
             badge = self.container_ux.register_container(name, template)
         self._container_templates[name] = template
+
+        if badge.policy.tor_required:
+            self.ci_orchestrator.tor_controller.enable()
+            self.ci_orchestrator.tor_controller.isolate_stream(name)
 
         profile_locale = locale or self.locale
         self.uniformity_manager.apply_preset(name, badge.policy.uniformity_preset, locale=profile_locale)
@@ -86,6 +102,7 @@ class PrivacyDashboard:
             "extensions": self.extension_platform.container_extensions(container),
             "permissions": self.permission_manager.active_permissions(self._container_origins[container]),
             "policy_mode": self.permission_policy.compliance_mode,
+            "performance_overlays": [overlay.recommendation for overlay in self.performance_monitor.overlays_for(container)],
         }
 
     def log_error(self, message: str) -> None:
@@ -147,6 +164,25 @@ class PrivacyDashboard:
             "canvas": self.noise_calibrator.canvas_noise(origin),
             "audio": self.noise_calibrator.audio_noise(origin),
         }
+
+    def record_usage_metrics(self, container: str, power_mw: int, cpu_percent: float, bandwidth_kbps: int) -> None:
+        self.performance_monitor.record_usage(container, power_mw=power_mw, cpu_percent=cpu_percent, bandwidth_kbps=bandwidth_kbps)
+
+    def run_privacy_ci(self, proxy_summary: Dict[str, bool]) -> Dict[str, object]:
+        containers = list(self._container_templates.keys())
+        return self.ci_orchestrator.run(self.uniformity_manager, containers, proxy_summary)
+
+    def publish_release_comms(self, version: str, mitigations: List[str]) -> None:
+        threat_models = [f"container:{name}" for name in self._container_templates]
+        architecture_docs = ["threat-models.md", "privacy-ci.md"]
+        self.release_communicator.publish_release(version, threat_models, architecture_docs, mitigations)
+
+    def submit_crash(self, report: Dict[str, str]) -> bool:
+        sanitized = self.telemetry_pipeline.sanitize(report)
+        return self.telemetry_pipeline.submit(sanitized)
+
+    def record_usability_study(self, topic: str, finding: str) -> None:
+        self.usability_findings.append(f"{topic}:{finding}")
 
 
 __all__ = ["PrivacyDashboard"]
