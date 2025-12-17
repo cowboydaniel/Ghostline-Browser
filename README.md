@@ -1,6 +1,6 @@
 # Ghostline Browser Engineering Plan
 
-For milestone details, see [ROADMAP.md](ROADMAP.md).
+For milestone details, see [ROADMAP.md](ROADMAP.md). The desktop shell is built with **PySide6** and QtWebEngine to keep the UI stack fully Python-based while aligning with the roadmap’s privacy goals.
 
 ## Vision and Goals
 Build a privacy-first, security-hardened browser that matches Firefox-level usability/performance, delivers Tor Browser-level privacy protections when enabled, and applies best-practice security hardening throughout. Claims of being "untrackable" are avoided; the goal is to measurably reduce tracking and exploitation risk while maintaining practical usability.
@@ -25,6 +25,18 @@ Build a privacy-first, security-hardened browser that matches Firefox-level usab
   * Local-first architecture: all features run entirely on-device with no cloud dependencies while still supporting loading any website.
   * Extensibility is achieved via well-defined internal interfaces instead of upstream patching.
 * **Mitigations:** Keep the codebase modular for auditability; design APIs that allow future integration of proven components without inheriting legacy attack surface.
+
+## Building and Running (PySide6)
+1. Install Python 3.11+ and ensure Qt WebEngine dependencies are available for your platform.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Launch the PySide6 shell:
+   ```bash
+   python main.py
+   ```
+4. Use this entry point for UI-focused smoke tests (window creation, navigation, toolbar interactions) until broader engine components land.
 
 ## Anti-Fingerprinting Strategy
 * **RFP-like baseline:** enable Resist Fingerprinting defaults (user agent, screen size bucketing, font whitelist, canvas randomization, time precision reduction, WebGL limits).
