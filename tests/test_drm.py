@@ -47,10 +47,14 @@ def test_enable_widevine_sets_flags_and_settings(tmp_path, monkeypatch):
     library.touch()
     profile = DummyProfile()
 
+    # First set up the environment with the library
     monkeypatch.setenv("QTWEBENGINE_CHROMIUM_FLAGS", "--foo")
-    chosen = drm.enable_widevine(profile, library_path=str(library))
+    drm.setup_widevine_environment(extra_paths=[str(library)])
 
-    assert chosen == str(library)
+    # Then enable widevine on the profile
+    result = drm.enable_widevine(profile)
+
+    assert result is True
     assert profile._settings.attributes[drm.QWebEngineSettings.PluginsEnabled] is True
     assert profile._settings.attributes[drm.QWebEngineSettings.FullScreenSupportEnabled] is True
     assert profile._settings.attributes[drm.QWebEngineSettings.PlaybackRequiresUserGesture] is False
@@ -67,9 +71,12 @@ def test_enable_widevine_is_idempotent(tmp_path, monkeypatch):
     profile = DummyProfile()
 
     monkeypatch.setenv("QTWEBENGINE_CHROMIUM_FLAGS", "")
-    drm.enable_widevine(profile, library_path=str(library))
+    # Set up environment
+    drm.setup_widevine_environment(extra_paths=[str(library)])
     flags_first = os.environ["QTWEBENGINE_CHROMIUM_FLAGS"]
-    drm.enable_widevine(profile, library_path=str(library))
+    # Call enable_widevine twice - should be idempotent
+    drm.enable_widevine(profile)
+    drm.enable_widevine(profile)
     flags_second = os.environ["QTWEBENGINE_CHROMIUM_FLAGS"]
 
     assert flags_first == flags_second
