@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from ghostline.logging_config import configure_logging, startup_banner
-from ghostline.media.drm import enable_widevine
+from ghostline.media.drm import enable_widevine, setup_widevine_environment
 from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
 from ghostline.ui.dashboard import PrivacyDashboard
 from ghostline.ui.interceptor import MimeTypeFixInterceptor
@@ -34,7 +34,8 @@ class GhostlineWindow(QMainWindow):
         container_badge = self.dashboard.ensure_container(self.container_name, template="research")
 
         self.web_view = QWebEngineView(self)
-        self.widevine_path = enable_widevine(self.web_view.page().profile())
+        # Enable Widevine profile settings (environment was set up in launch())
+        self.widevine_enabled = enable_widevine(self.web_view.page().profile())
 
         # Install request interceptor to fix MIME type issues
         interceptor = MimeTypeFixInterceptor()
@@ -169,10 +170,10 @@ class GhostlineWindow(QMainWindow):
         alerts = self.dashboard.sandbox_alerts()
         if alerts:
             status_parts.append(f"Sandbox alerts: {len(alerts)}")
-        if self.widevine_path:
+        if self.widevine_enabled:
             status_parts.append("DRM: Widevine ready")
         else:
-            status_parts.append("DRM: Widevine missing")
+            status_parts.append("DRM: Widevine unavailable")
         if self._compatibility_note:
             status_parts.append(f"Compat: {self._compatibility_note}")
         status_text = "  |  ".join(status_parts)
@@ -183,6 +184,8 @@ class GhostlineWindow(QMainWindow):
 def launch() -> None:
     configure_logging()
     startup_banner("ghostline")
+    # Set up Widevine environment BEFORE QApplication initialization
+    setup_widevine_environment()
     app = QApplication(sys.argv)
     window = GhostlineWindow()
     window.show()
