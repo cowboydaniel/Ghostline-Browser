@@ -29,14 +29,41 @@ _DEFAULT_WIDEVINE_PATHS = (
     "/usr/lib64/chromium/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so",
 )
 
+_DEFAULT_SEARCH_ROOTS = (
+    Path.home(),
+    Path("/usr/lib"),
+    Path("/usr/lib64"),
+    Path("/usr/local/lib"),
+    Path("/opt"),
+    Path("/var/lib/snapd"),
+)
+
 
 def find_widevine_library(extra_paths: Iterable[str] | None = None) -> Optional[str]:
-    """Return the first existing Widevine library path from known or provided hints."""
+    """Return the first existing Widevine library path from known or provided hints.
+
+    Falls back to a shallow filesystem search so users with browser-managed
+    installs (e.g., Firefox's GMP plugin) do not have to manually locate the
+    library.
+    """
 
     hints = list(extra_paths or []) + list(_DEFAULT_WIDEVINE_PATHS)
     for candidate in hints:
         if candidate and Path(candidate).exists():
             return str(Path(candidate))
+
+    search_roots = os.environ.get("WIDEVINE_SEARCH_ROOTS")
+    if search_roots:
+        roots = [Path(p) for p in search_roots.split(os.pathsep) if p]
+    else:
+        roots = [root for root in _DEFAULT_SEARCH_ROOTS if root.exists()]
+
+    for root in roots:
+        try:
+            for match in root.rglob("libwidevinecdm.so"):
+                return str(match)
+        except PermissionError:
+            continue
     return None
 
 
