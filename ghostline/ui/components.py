@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QAction, QLineEdit, QToolBar
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QLineEdit, QToolBar
 
 
 class NavigationBar(QToolBar):
