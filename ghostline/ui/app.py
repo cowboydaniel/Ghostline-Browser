@@ -1,15 +1,17 @@
-"""PySide6 application shell with QtWebEngine."""
+"""PySide6 application shell with QtWebEngine and modernized chrome."""
 from __future__ import annotations
 
 import logging
 import sys
 
 from PySide6.QtCore import QUrl
-from PySide6.QtWidgets import QApplication, QMainWindow, QStatusBar
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from ghostline.logging_config import configure_logging, startup_banner
-from .components import NavigationBar
+from ghostline.ui.dashboard import PrivacyDashboard
+from .components import NavigationBar, SettingsDialog
 
 
 class GhostlineWindow(QMainWindow):
@@ -20,20 +22,29 @@ class GhostlineWindow(QMainWindow):
         self.setWindowTitle("Ghostline Browser")
         self.resize(1280, 800)
 
+        self.dashboard = PrivacyDashboard()
+
         self.web_view = QWebEngineView(self)
         self.web_view.load(QUrl(home_url))
         self.web_view.urlChanged.connect(self._update_address_bar)
+        self.web_view.urlChanged.connect(self._update_security_state)
         self.web_view.loadFinished.connect(self._show_load_status)
 
         self.navigation_bar = NavigationBar(self)
         self.navigation_bar.navigate_requested.connect(self._on_navigate)
         self.navigation_bar.reload_requested.connect(self.web_view.reload)
         self.navigation_bar.home_requested.connect(lambda: self.web_view.load(QUrl(home_url)))
+        self.navigation_bar.settings_requested.connect(self._open_settings)
         self.addToolBar(self.navigation_bar)
 
+        self._build_menu()
+
         self.status_bar = QStatusBar(self)
+        self.status_bar_label = QLabel("", self)
+        self.status_bar.addPermanentWidget(self.status_bar_label)
         self.setStatusBar(self.status_bar)
         self.setCentralWidget(self.web_view)
+        self._refresh_privacy_summary()
 
     def _on_navigate(self, target: str) -> None:
         if target == "back":
@@ -48,13 +59,63 @@ class GhostlineWindow(QMainWindow):
             url_text = "https://" + url_text
         self.web_view.load(QUrl(url_text))
 
+    def _build_menu(self) -> None:
+        menu = self.menuBar()
+        file_menu = menu.addMenu("&File")
+        new_session_action = QAction("New Session", self)
+        new_session_action.setShortcut(QKeySequence.New)
+        new_session_action.triggered.connect(lambda: self.web_view.load(QUrl("about:blank")))
+        file_menu.addAction(new_session_action)
+        file_menu.addSeparator()
+        quit_action = QAction("Quit", self)
+        quit_action.setShortcut(QKeySequence.Quit)
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
+        view_menu = menu.addMenu("&View")
+        view_menu.addAction("Reload", self.web_view.reload, QKeySequence.Refresh)
+        view_menu.addAction("Back", lambda: self._on_navigate("back"), QKeySequence.Back)
+        view_menu.addAction(
+            "Forward", lambda: self._on_navigate("forward"), QKeySequence.Forward
+        )
+
+        tools_menu = menu.addMenu("&Tools")
+        settings_action = QAction("Settings", self)
+        settings_action.setShortcut(QKeySequence.Preferences)
+        settings_action.triggered.connect(self._open_settings)
+        tools_menu.addAction(settings_action)
+
     def _update_address_bar(self, url: QUrl) -> None:
         self.navigation_bar.set_address(url.toString())
+
+    def _update_security_state(self, url: QUrl) -> None:
+        host = url.host() or None
+        secure = url.scheme().lower().startswith("https")
+        self.navigation_bar.update_security_state(secure, host)
 
     def _show_load_status(self, ok: bool) -> None:
         message = "Page loaded" if ok else "Failed to load page"
         logging.getLogger(__name__).info("navigation_status", extra={"success": ok})
         self.status_bar.showMessage(message, 2500)
+        self._refresh_privacy_summary()
+
+    def _open_settings(self) -> None:
+        dialog = SettingsDialog(self.dashboard, self)
+        if dialog.exec():
+            self._refresh_privacy_summary()
+
+    def _refresh_privacy_summary(self) -> None:
+        summary = self.dashboard.status_for_container("default")
+        status_parts = [
+            f"Mode: {summary['mode']}",
+            f"ECH: {'On' if summary['ech'] else 'Off'}",
+            f"HTTPS-Only: {'On' if summary['https_only'] else 'Off'}",
+            f"Tor: {'On' if summary['tor'] else 'Off'}",
+        ]
+        proxy = summary.get("proxy")
+        if proxy:
+            status_parts.append(f"Proxy: {proxy}")
+        self.status_bar_label.setText("  |  ".join(status_parts))
 
 
 def launch() -> None:
