@@ -23,6 +23,8 @@ class GhostlineWindow(QMainWindow):
         self.resize(1280, 800)
 
         self.dashboard = PrivacyDashboard()
+        self.container_name = "default"
+        container_badge = self.dashboard.ensure_container(self.container_name, template="research")
 
         self.web_view = QWebEngineView(self)
         self.web_view.load(QUrl(home_url))
@@ -36,6 +38,11 @@ class GhostlineWindow(QMainWindow):
         self.navigation_bar.home_requested.connect(lambda: self.web_view.load(QUrl(home_url)))
         self.navigation_bar.settings_requested.connect(self._open_settings)
         self.addToolBar(self.navigation_bar)
+        self.navigation_bar.set_container_badge(
+            self.container_name,
+            container_badge.color,
+            container_badge.isolation_badge,
+        )
 
         self._build_menu()
 
@@ -92,6 +99,7 @@ class GhostlineWindow(QMainWindow):
         host = url.host() or None
         secure = url.scheme().lower().startswith("https")
         self.navigation_bar.update_security_state(secure, host)
+        self.dashboard.record_navigation(self.container_name, url.toString())
 
     def _show_load_status(self, ok: bool) -> None:
         message = "Page loaded" if ok else "Failed to load page"
@@ -100,17 +108,32 @@ class GhostlineWindow(QMainWindow):
         self._refresh_privacy_summary()
 
     def _open_settings(self) -> None:
-        dialog = SettingsDialog(self.dashboard, self)
+        dialog = SettingsDialog(self.dashboard, self, container=self.container_name)
         if dialog.exec():
+            container_badge = self.dashboard.container_ux.badge_for(self.container_name)
+            if container_badge:
+                self.navigation_bar.set_container_badge(
+                    self.container_name,
+                    container_badge.color,
+                    container_badge.isolation_badge,
+                )
             self._refresh_privacy_summary()
 
     def _refresh_privacy_summary(self) -> None:
-        summary = self.dashboard.status_for_container("default")
+        summary = self.dashboard.status_for_container(self.container_name)
+        gating = self.dashboard.gating_snapshot(self.container_name)
+        noise = self.dashboard.calibrated_noise_for(self.container_name)
         status_parts = [
             f"Mode: {summary['mode']}",
+            f"Uniformity: {summary['uniformity']}",
+            f"Entropy: {summary['entropy_bits']} bits",
             f"ECH: {'On' if summary['ech'] else 'Off'}",
             f"HTTPS-Only: {'On' if summary['https_only'] else 'Off'}",
             f"Tor: {'On' if summary['tor'] else 'Off'}",
+            f"Origin: {summary['container_origin']}",
+            f"Noise: canvas Δ{noise['canvas']['r']:.2f}/{noise['canvas']['g']:.2f}/{noise['canvas']['b']:.2f}",
+            f"Audio Δ{noise['audio']:.2f}",
+            "Gates: " + ", ".join(f"{api}={'✔' if allowed else '✖'}" for api, allowed in gating.items()),
         ]
         proxy = summary.get("proxy")
         if proxy:

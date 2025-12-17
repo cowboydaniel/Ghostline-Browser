@@ -4,6 +4,7 @@ from ghostline.privacy.audit import ExternalTestbedIntegration, FingerprintingAu
 from ghostline.privacy.entropy import DeviceRandomizer, EntropyBudget, NoiseCalibrator
 from ghostline.privacy.uniformity import HIGH_ENTROPY_APIS, UniformityManager
 from ghostline.ui.containers import ContainerUX
+from ghostline.ui.dashboard import PrivacyDashboard
 
 
 def test_uniformity_presets_gate_high_entropy_and_fonts():
@@ -77,3 +78,19 @@ def test_container_ux_templates_and_badges():
 
     with pytest.raises(ValueError):
         ux.register_container("unknown", "invalid")
+
+
+def test_dashboard_integrates_phase3_controls():
+    dashboard = PrivacyDashboard()
+    badge = dashboard.ensure_container("alpha", template="shopping", locale="fr-FR")
+
+    assert badge.policy.uniformity_preset == "balanced"
+    dashboard.record_navigation("alpha", "https://example.com/path")
+    summary = dashboard.status_for_container("alpha")
+    assert summary["uniformity"] == "balanced"
+    assert "example.com" in summary["container_origin"]
+
+    gates = dashboard.gating_snapshot("alpha", apis=["webgl", "webgpu"])
+    assert "webgl" in gates
+    noise = dashboard.calibrated_noise_for("alpha")
+    assert "canvas" in noise and "audio" in noise
