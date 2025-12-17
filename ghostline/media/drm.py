@@ -81,6 +81,9 @@ def setup_widevine_environment(extra_paths: Iterable[str] | None = None) -> Opti
     This must be called before QApplication is created. Returns the library path
     if Widevine was found and configured.
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
     library = find_widevine_library(extra_paths)
 
     if library:
@@ -88,6 +91,12 @@ def setup_widevine_environment(extra_paths: Iterable[str] | None = None) -> Opti
         flags = _append_flag(flags, "--enable-widevine-cdm")
         flags = _append_flag(flags, f"--widevine-path={library}")
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = flags
+        logger.info("widevine_enabled", extra={"library_path": library})
+    else:
+        logger.info("widevine_unavailable", extra={
+            "message": "Widevine CDM not found on system. Install google-chrome or chromium to enable DRM playback.",
+            "search_paths": str(_DEFAULT_WIDEVINE_PATHS)
+        })
 
     return library
 
