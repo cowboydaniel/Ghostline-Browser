@@ -287,8 +287,8 @@ class TimerJitterGenerator:
   }};
 
   // Date constructor
-  const OriginalDate = Date;
-  Date = new Proxy(OriginalDate, {{
+  const OriginalDateConstructor = Date;
+  Date = new Proxy(OriginalDateConstructor, {{
     construct(target, args) {{
       if (args.length === 0) {{
         const now = originalDateNow();
@@ -309,8 +309,8 @@ class TimerJitterGenerator:
 
   // Copy static methods
   Date.now = originalDateNow;
-  Date.parse = OriginalDate.parse;
-  Date.UTC = OriginalDate.UTC;
+  Date.parse = OriginalDateConstructor.parse;
+  Date.UTC = OriginalDateConstructor.UTC;
 """
         return js_code
 
