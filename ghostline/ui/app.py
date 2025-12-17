@@ -138,6 +138,13 @@ class GhostlineWindow(QMainWindow):
         proxy = summary.get("proxy")
         if proxy:
             status_parts.append(f"Proxy: {proxy}")
+        status_parts.append(f"Extensions: {len(summary.get('extensions', []))}")
+        status_parts.append(
+            f"Permissions: {len(summary.get('permissions', []))} ({summary.get('policy_mode', 'standard')})"
+        )
+        alerts = self.dashboard.sandbox_alerts()
+        if alerts:
+            status_parts.append(f"Sandbox alerts: {len(alerts)}")
         self.status_bar_label.setText("  |  ".join(status_parts))
 
 

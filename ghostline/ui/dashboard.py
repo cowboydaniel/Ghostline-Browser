@@ -1,7 +1,8 @@
 """Privacy dashboard and quick toggles for network privacy controls.
 
-This module wires Phase 3 fingerprinting defenses into the live browser UI by
-owning uniformity presets, entropy budgeting, deterministic noise calibrators,
+This module wires Phase 3 fingerprinting defenses and the Phase 4 extension
+and permission controls into the live browser UI by owning uniformity presets,
+entropy budgeting, deterministic noise calibrators, extension policy cloning,
 and container UX templates. The main window queries this dashboard to render
 container badges and to surface summaries of the active protection posture for
 each container.
@@ -12,7 +13,14 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 from urllib.parse import urlsplit
 
+from ghostline.extensions.platform import ExtensionPackage, ExtensionPlatform
 from ghostline.networking.proxy import ProxyRegistry
+from ghostline.permissions.manager import (
+    NativeMessagingGuard,
+    PermissionManager,
+    PermissionPolicyEngine,
+    PermissionPrompt,
+)
 from ghostline.privacy.entropy import DeviceRandomizer, EntropyBudget, NoiseCalibrator
 from ghostline.privacy.uniformity import HIGH_ENTROPY_APIS, UniformityManager
 from ghostline.ui.containers import ContainerBadge, ContainerUX
@@ -36,10 +44,17 @@ class PrivacyDashboard:
     device_randomizer: DeviceRandomizer = field(default_factory=DeviceRandomizer)
     noise_calibrator: NoiseCalibrator = field(default_factory=NoiseCalibrator)
     container_ux: ContainerUX = field(default_factory=ContainerUX)
+    permission_policy: PermissionPolicyEngine = field(default_factory=PermissionPolicyEngine)
+    permission_manager: PermissionManager = field(init=False)
+    native_messaging_guard: NativeMessagingGuard = field(default_factory=lambda: NativeMessagingGuard(set()))
+    extension_platform: ExtensionPlatform = field(default_factory=ExtensionPlatform)
     locale: str = "en-US"
     _container_templates: Dict[str, str] = field(default_factory=dict)
     _container_origins: Dict[str, str] = field(default_factory=dict)
     _last_device_class: Dict[str, Dict[str, str | int]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.permission_manager = PermissionManager(policy_engine=self.permission_policy)
 
     def ensure_container(self, name: str, template: str = "research", locale: str | None = None) -> ContainerBadge:
         """Register container template, apply uniformity profile, and return badge."""
@@ -68,6 +83,9 @@ class PrivacyDashboard:
             "entropy_bits": self.entropy_budget.total_bits(),
             "container_origin": self._container_origins[container],
             "device_class": last_device or {},
+            "extensions": self.extension_platform.container_extensions(container),
+            "permissions": self.permission_manager.active_permissions(self._container_origins[container]),
+            "policy_mode": self.permission_policy.compliance_mode,
         }
 
     def log_error(self, message: str) -> None:
@@ -92,6 +110,29 @@ class PrivacyDashboard:
         bucket_seed = abs(hash(origin)) % 10_000
         device = self.device_randomizer.randomize(window_id=bucket_seed)
         self._last_device_class[container] = device
+
+    def request_permission(self, container: str, permission: str, prompt: PermissionPrompt) -> bool:
+        origin = self._container_origins.get(container, "about:blank")
+        grant = self.permission_manager.request_permission(origin, permission, prompt)
+        return grant.granted and grant.active
+
+    def log_permission_usage(self, container: str, permission: str) -> bool:
+        origin = self._container_origins.get(container, "about:blank")
+        return self.permission_manager.use_permission(origin, permission)
+
+    def auto_revoke_permissions(self) -> None:
+        self.permission_manager.revoke_unused()
+
+    def register_extension(self, package: ExtensionPackage, container: str) -> None:
+        self.extension_platform.publish(package)
+        self.extension_platform.manager.allow_extension(container, package.identifier)
+        self.extension_platform.enable_for_container(container, package.identifier)
+
+    def clone_extension_policy(self, source: str, target: str) -> None:
+        self.extension_platform.clone_container_policy(source, target)
+
+    def sandbox_alerts(self) -> List[str]:
+        return list(self.extension_platform.sandbox.alerts)
 
     def gating_snapshot(self, container: str, apis: List[str] | None = None) -> Dict[str, bool]:
         apis = apis or list(HIGH_ENTROPY_APIS)
