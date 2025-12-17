@@ -16,6 +16,9 @@ from ghostline.ui.dashboard import PrivacyDashboard
 from .components import NavigationBar, SettingsDialog
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 class GhostlineWindow(QMainWindow):
     """Hardened browser shell with typed signals and status surfaces."""
 
@@ -52,6 +55,7 @@ class GhostlineWindow(QMainWindow):
         self._build_menu()
 
         self.status_bar = QStatusBar(self)
+        self.status_bar.hide()
         self.status_bar_label = QLabel("", self)
         self.status_bar.addPermanentWidget(self.status_bar_label)
         self.setStatusBar(self.status_bar)
@@ -111,14 +115,14 @@ class GhostlineWindow(QMainWindow):
                 f"{advisory.host}: {advisory.symptom} (error {advisory.error_code}). "
                 f"{advisory.remediation}"
             )
-            self.status_bar.showMessage(self._compatibility_note, 5000)
+            LOGGER.info("compatibility_note", extra={"note": self._compatibility_note})
         else:
             self._compatibility_note = None
+            LOGGER.info("compatibility_note", extra={"note": None})
 
     def _show_load_status(self, ok: bool) -> None:
         message = "Page loaded" if ok else "Failed to load page"
-        logging.getLogger(__name__).info("navigation_status", extra={"success": ok})
-        self.status_bar.showMessage(message, 2500)
+        LOGGER.info("navigation_status", extra={"success": ok, "message": message})
         self._refresh_privacy_summary()
 
     def _open_settings(self) -> None:
@@ -165,7 +169,9 @@ class GhostlineWindow(QMainWindow):
             status_parts.append("DRM: Widevine missing")
         if self._compatibility_note:
             status_parts.append(f"Compat: {self._compatibility_note}")
-        self.status_bar_label.setText("  |  ".join(status_parts))
+        status_text = "  |  ".join(status_parts)
+        LOGGER.info("privacy_summary", extra={"summary": status_text})
+        self.status_bar_label.clear()
 
 
 def launch() -> None:
