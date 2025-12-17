@@ -30,6 +30,18 @@ def test_find_widevine_library_prefers_custom_path(tmp_path):
     assert discovered == str(library)
 
 
+def test_find_widevine_library_scans_search_roots(tmp_path, monkeypatch):
+    nested = tmp_path / "deep" / "path" / "gmp-widevinecdm"
+    nested.mkdir(parents=True)
+    library = nested / "libwidevinecdm.so"
+    library.touch()
+
+    monkeypatch.setenv("WIDEVINE_SEARCH_ROOTS", str(tmp_path))
+
+    discovered = drm.find_widevine_library([])
+    assert discovered == str(library)
+
+
 def test_enable_widevine_sets_flags_and_settings(tmp_path, monkeypatch):
     library = tmp_path / "libwidevinecdm.so"
     library.touch()
