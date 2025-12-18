@@ -408,6 +408,9 @@
       .btn{ transition:none; }
     }
   </style>
+
+  <!-- Load Qt WebChannel JavaScript library from bundled fallback -->
+  <script src="ghostline:qwebchannel"></script>
 </head>
 
 <body>
@@ -549,20 +552,37 @@
   </main>
 
   <script>
+    // Debug: log when page loads
+    console.log("[Ghostline] Welcome page loaded, checking for QWebChannel...");
+    console.log("[Ghostline] window.ghostline:", typeof window.ghostline);
+
     // Hook these actions into your PySide6 / QtWebEngine bridge.
     // Example: expose a QWebChannel object as `window.ghostline`.
     function ghostlineAction(action){
+      console.log("[Ghostline] ghostlineAction called with:", action);
+      console.log("[Ghostline] window.ghostline exists:", !!window.ghostline);
       try{
         if (window.ghostline && typeof window.ghostline.action === "function"){
+          console.log("[Ghostline] Calling bridge action...");
           window.ghostline.action(action);
         } else {
-          console.log("[Ghostline] action:", action);
+          console.log("[Ghostline] action fallback:", action);
           flashTip(action);
         }
       } catch (e){
         console.log("[Ghostline] action error:", e);
       }
     }
+
+    // Wait for web channel to be ready
+    let webChannelReady = false;
+    const checkWebChannel = setInterval(() => {
+      if (window.ghostline) {
+        console.log("[Ghostline] Web channel is ready!");
+        webChannelReady = true;
+        clearInterval(checkWebChannel);
+      }
+    }, 100);
 
     const tips = [
       "Tip: Press Ctrl L to jump to the address bar.",

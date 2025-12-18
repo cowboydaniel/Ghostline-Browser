@@ -33,22 +33,29 @@ class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
             "ghostline:privacy_dashboard": "privacy_dashboard.html",
             "ghostline:settings": "settings.html",
             "ghostline:shortcuts": "shortcuts.html",
+            "ghostline:qwebchannel": "qwebchannel.js",
         }
 
         filename = url_map.get(url)
+        mime_type = b"text/html; charset=utf-8"
+
         if filename:
+            # Determine MIME type based on file extension
+            if filename.endswith(".js"):
+                mime_type = b"text/javascript; charset=utf-8"
+
             file_path = media_dir / filename
             if file_path.exists():
                 content = file_path.read_bytes()
             else:
                 # Fallback if file not found
-                content = b"<html><body>Page not found</body></html>"
+                content = b"/* File not found */"
 
             # Use QBuffer to serve the content
             buffer = QBuffer(self)
             buffer.setData(QByteArray(content))
             buffer.open(QIODevice.ReadOnly)
-            request.reply(b"text/html; charset=utf-8", buffer)
+            request.reply(mime_type, buffer)
         else:
             # Unknown ghostline: URL
             content = b"<html><body>Unknown page</body></html>"
