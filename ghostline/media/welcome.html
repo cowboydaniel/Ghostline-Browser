@@ -557,19 +557,37 @@
 
     // Hook these actions into your PySide6 / QtWebEngine bridge.
     // Example: expose a QWebChannel object as `window.ghostline`.
+    const ghostlineFallbacks = {
+      newtab: () => window.location.assign("ghostline:welcome"),
+      privacy: () => window.location.assign("ghostline:privacy_dashboard"),
+      settings: () => window.location.assign("ghostline:settings"),
+      learn: () => window.location.assign("ghostline:shortcuts"),
+    };
+
     function ghostlineAction(action){
       console.log("[Ghostline] ghostlineAction called with:", action);
       console.log("[Ghostline] window.ghostline available:", !!window.ghostline);
+
+      let handled = false;
       try{
         if (window.ghostline && typeof window.ghostline.action === "function"){
           console.log("[Ghostline] Calling bridge action:", action);
           window.ghostline.action(action);
+          handled = true;
+        }
+      } catch (e){
+        console.error("[Ghostline] action error:", e);
+      }
+
+      if (!handled){
+        const fallback = ghostlineFallbacks[action];
+        if (fallback){
+          console.log("[Ghostline] Bridge missing, navigating via ghostline:// scheme", action);
+          fallback();
         } else {
           console.log("[Ghostline] Bridge not available, showing fallback");
           flashTip(action);
         }
-      } catch (e){
-        console.error("[Ghostline] action error:", e);
       }
     }
 

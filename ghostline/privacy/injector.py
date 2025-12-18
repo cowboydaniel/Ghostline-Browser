@@ -366,11 +366,17 @@ class APIGateGenerator:
         if not gating.get('webgpu', True):
             js_parts.append("""
   // Block WebGPU
+  // navigator.gpu is force-disabled to reduce entropy surface
+  const originalWebGPU = navigator.gpu;
   Object.defineProperty(navigator, 'gpu', {
     get: () => undefined,
     configurable: false,
     enumerable: true
   });
+  // Preserve property visibility while ensuring callers receive undefined
+  if (originalWebGPU !== undefined) {
+    navigator.gpu = undefined;
+  }
 """)
 
         # Block AudioContext if not allowed
