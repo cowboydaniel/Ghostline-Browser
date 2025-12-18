@@ -188,13 +188,31 @@ class GhostlineWindow(QMainWindow):
         LOGGER.info("new_tab_created", extra={"tab_index": tab_index, "url": url})
 
     def _close_tab(self, tab_index: int) -> None:
-        """Close a tab."""
-        if tab_index in self.tabs:
-            # Remove from tracking
-            del self.tabs[tab_index]
-            # Remove from tab widget
-            self.tab_widget.removeTab(tab_index)
-            LOGGER.info("tab_closed", extra={"tab_index": tab_index})
+        """Close a tab and clean up all associated resources."""
+        if tab_index not in self.tabs:
+            return
+
+        tab = self.tabs[tab_index]
+        web_view = tab.web_view
+
+        # Disconnect all signals connected to this web view
+        web_view.disconnect()
+
+        # Remove fingerprint protection scripts for this tab
+        profile = self.shared_profile
+        scripts = profile.scripts()
+        script_name = f"ghostline-fingerprint-protection-{tab_index}"
+        scripts_to_remove = [script for script in scripts.toList() if script.name() == script_name]
+        for script in scripts_to_remove:
+            scripts.remove(script)
+
+        # Remove the tab widget
+        self.tab_widget.removeTab(tab_index)
+
+        # Remove from tracking
+        del self.tabs[tab_index]
+
+        LOGGER.info("tab_closed", extra={"tab_index": tab_index, "scripts_removed": len(scripts_to_remove)})
 
     def _on_tab_switched(self, tab_index: int) -> None:
         """Handle tab switch event."""
