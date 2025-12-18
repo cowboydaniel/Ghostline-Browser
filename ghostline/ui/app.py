@@ -316,7 +316,14 @@ class GhostlineWindow(QMainWindow):
         # Create and configure script
         script = QWebEngineScript()
         script.setName(script_name)
-        script.setSourceCode(script_source)
+
+        # Wrap script to skip sandboxed/special pages like about:blank
+        wrapped_source = f"""
+if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:') {{
+{script_source}
+}}
+"""
+        script.setSourceCode(wrapped_source)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         script.setRunsOnSubFrames(True)
