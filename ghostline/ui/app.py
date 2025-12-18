@@ -468,7 +468,7 @@ if (typeof QWebChannel !== 'undefined') {
     });
 }
 """)
-        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentStart)
+        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         script.setRunsOnSubFrames(False)
 
