@@ -480,21 +480,30 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         qwebchannel_lib_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         qwebchannel_lib_script.setRunsOnSubFrames(False)
         scripts.insert(qwebchannel_lib_script)
+        print(f"[WEBCHANNEL] QWebChannel library injected ({len(qwebchannel_code)} bytes)", flush=True)
 
         # Then, inject the initialization script at DocumentReady
         # This runs after the QWebChannel library is loaded and the page is ready
         script = QWebEngineScript()
         script.setName(script_name)
         script.setSourceCode("""
+console.log('[Ghostline-Init] Running initialization script');
+console.log('[Ghostline-Init] QWebChannel available:', typeof QWebChannel !== 'undefined');
+console.log('[Ghostline-Init] qt available:', typeof qt !== 'undefined');
+console.log('[Ghostline-Init] qt.webChannelTransport available:', typeof qt !== 'undefined' && typeof qt.webChannelTransport !== 'undefined');
+
 if (typeof QWebChannel !== 'undefined' && qt && qt.webChannelTransport) {
+    console.log('[Ghostline-Init] Creating QWebChannel instance...');
     new QWebChannel(qt.webChannelTransport, function(channel) {
+        console.log('[Ghostline-Init] QWebChannel callback invoked');
+        console.log('[Ghostline-Init] channel.objects:', Object.keys(channel.objects));
         window.ghostline = channel.objects.ghostline;
-        console.log('[Ghostline] Web channel ready!');
+        console.log('[Ghostline-Init] window.ghostline set!');
     });
 } else {
-    console.log('[Ghostline] QWebChannel or transport not available');
-    console.log('[Ghostline] QWebChannel type:', typeof QWebChannel);
-    console.log('[Ghostline] qt type:', typeof qt);
+    console.log('[Ghostline-Init] ERROR: QWebChannel or transport not available');
+    console.log('[Ghostline-Init] QWebChannel type:', typeof QWebChannel);
+    console.log('[Ghostline-Init] qt type:', typeof qt);
 }
 """)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
