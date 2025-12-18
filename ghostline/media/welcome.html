@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Welcome to Ghostline Browser</title>
+
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0B1222;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.64);
+      --hair:rgba(255,255,255,.12);
+
+      --accent:#7C5CFF;
+      --accent2:#2EE9A6;
+      --accent3:#53A7FF;
+
+      --radius:24px;
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 15%, rgba(124,92,255,.25), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 700px at 50% 90%, rgba(83,167,255,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* subtle star/noise texture */
+    .noise{
+      pointer-events:none;
+      position:fixed;
+      inset:0;
+      opacity:.065;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding: clamp(20px, 4vw, 48px);
+    }
+
+    .shell{
+      width:min(1120px, 100%);
+      display:grid;
+      gap:24px;
+      grid-template-columns: 1.15fr .85fr;
+      align-items:stretch;
+    }
+
+    @media (max-width: 920px){
+      .shell{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      position:relative;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(900px 320px at 25% 0%, rgba(124,92,255,.25), transparent 65%),
+        radial-gradient(900px 360px at 80% 15%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 360px at 55% 100%, rgba(83,167,255,.18), transparent 60%);
+      opacity:.85;
+      pointer-events:none;
+      filter:saturate(1.15);
+    }
+
+    .card > .inner{
+      position:relative;
+      padding: clamp(22px, 3.6vw, 36px);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--hair);
+      margin-bottom:20px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .logo{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      background:
+        radial-gradient(16px 16px at 35% 35%, rgba(255,255,255,.55), transparent 60%),
+        linear-gradient(135deg, rgba(124,92,255,.95), rgba(46,233,166,.85));
+      box-shadow: var(--shadow2);
+      border:1px solid rgba(255,255,255,.16);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo::after{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+      transform:rotate(25deg);
+      animation: sheen 6s ease-in-out infinite;
+      opacity:.65;
+    }
+    @keyframes sheen{
+      0%,25%{ transform:translateX(-30%) rotate(25deg); }
+      55%,100%{ transform:translateX(30%) rotate(25deg); }
+    }
+
+    .brand h1{
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height:1.1;
+      margin:0;
+      letter-spacing:-.02em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brand p{
+      margin:2px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      font-family:var(--mono);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.80);
+      font-size:12px;
+      font-family:var(--mono);
+      user-select:none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(46,233,166,.95));
+      box-shadow: 0 0 0 3px rgba(46,233,166,.12);
+    }
+
+    .hero{
+      display:grid;
+      gap:16px;
+      margin-top:6px;
+    }
+
+    .headline{
+      font-size: clamp(30px, 4.2vw, 54px);
+      line-height:1.02;
+      letter-spacing:-.04em;
+      margin:0;
+    }
+    .headline .grad{
+      background: linear-gradient(90deg, rgba(255,255,255,.95), rgba(255,255,255,.65));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .sub{
+      margin:0;
+      color: rgba(255,255,255,.72);
+      font-size: clamp(14px, 1.4vw, 16px);
+      line-height:1.6;
+      max-width: 70ch;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:6px;
+    }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight:650;
+      font-size: 14px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+      color: rgba(10,12,18,.92);
+      box-shadow: 0 14px 36px rgba(124,92,255,.20), 0 14px 36px rgba(46,233,166,.10);
+    }
+    .btnPrimary:hover{ transform: translateY(-1px); }
+    .btnPrimary:active{ transform: translateY(0px) scale(.99); }
+
+    .btnGhost{
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.28);
+    }
+    .btnGhost:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.18);
+      transform: translateY(-1px);
+    }
+    .btnGhost:active{ transform: translateY(0px) scale(.99); }
+
+    .kbd{
+      font-family: var(--mono);
+      font-weight:600;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.78);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:18px;
+    }
+    @media (max-width: 520px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .tile{
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      padding: 14px 14px 12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .tile::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: radial-gradient(240px 120px at 20% 0%, rgba(124,92,255,.18), transparent 60%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .tile h3{
+      position:relative;
+      margin:0 0 6px 0;
+      font-size: 14px;
+      letter-spacing:-.01em;
+    }
+    .tile p{
+      position:relative;
+      margin:0;
+      color: rgba(255,255,255,.70);
+      font-size: 13px;
+      line-height:1.45;
+    }
+
+    /* Right panel */
+    .side{
+      display:grid;
+      gap:14px;
+      padding: 18px;
+    }
+
+    .side .panel{
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      padding: 14px 14px 12px;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .panelTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .panelTitle h2{
+      margin:0;
+      font-size:13px;
+      color: rgba(255,255,255,.82);
+      letter-spacing:.02em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    .mini{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255,255,255,.66);
+    }
+
+    .list{
+      display:grid;
+      gap:10px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:10px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
+
+    .ic{
+      width:34px;height:34px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.35), transparent 60%),
+        linear-gradient(135deg, rgba(83,167,255,.35), rgba(124,92,255,.22));
+      flex: 0 0 auto;
+      box-shadow: 0 10px 18px rgba(0,0,0,.25);
+    }
+
+    .row b{
+      display:block;
+      font-size: 13px;
+      letter-spacing:-.01em;
+      margin-top:1px;
+    }
+    .row span{
+      display:block;
+      margin-top:4px;
+      color: rgba(255,255,255,.64);
+      font-size: 12.5px;
+      line-height:1.35;
+    }
+
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.56);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    .link{
+      color: rgba(255,255,255,.76);
+      text-decoration:none;
+      border-bottom: 1px dashed rgba(255,255,255,.28);
+    }
+    .link:hover{ border-bottom-color: rgba(255,255,255,.55); }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .logo::after{ animation:none; }
+      .btn{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="shell">
+      <!-- Main welcome card -->
+      <div class="card">
+        <div class="inner">
+          <div class="topbar">
+            <div class="brand">
+              <div class="logo" aria-hidden="true"></div>
+              <div>
+                <h1>Ghostline Browser</h1>
+                <p>privacy-first browsing, with teeth</p>
+              </div>
+            </div>
+            <div class="pill" title="Status">
+              <span class="dot" aria-hidden="true"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+
+          <div class="hero">
+            <h2 class="headline"><span class="grad">Welcome.</span> Browse like you mean it.</h2>
+            <p class="sub">
+              Ghostline is built for speed, clarity, and hardened privacy defaults.
+              You stay in control of identity surfaces: storage, permissions, fingerprinting, and network mode.
+            </p>
+
+            <div class="ctaRow">
+              <button class="btn btnPrimary" type="button" onclick="ghostlineAction('newtab')">
+                New Tab <span class="kbd">Ctrl</span><span class="kbd">T</span>
+              </button>
+
+              <button class="btn btnGhost" type="button" onclick="ghostlineAction('privacy')">
+                Privacy Dashboard <span class="kbd">Ctrl</span><span class="kbd">P</span>
+              </button>
+
+              <button class="btn btnGhost" type="button" onclick="ghostlineAction('settings')">
+                Settings <span class="kbd">Ctrl</span><span class="kbd">,</span>
+              </button>
+            </div>
+
+            <div class="grid" aria-label="Highlights">
+              <div class="tile">
+                <h3>Hardening by default</h3>
+                <p>Reasonable security posture out of the box, without turning the web into a haunted house of broken layouts.</p>
+              </div>
+              <div class="tile">
+                <h3>Fingerprint friction</h3>
+                <p>Minimize passive identifier surfaces and isolate per-site state to reduce cross-site correlation.</p>
+              </div>
+              <div class="tile">
+                <h3>Clear permissions</h3>
+                <p>Microphone, camera, location, notifications. No dark patterns, no mystery meat.</p>
+              </div>
+              <div class="tile">
+                <h3>Profiles & containers</h3>
+                <p>Keep work, personal, and testing worlds separated. Linkability hates this one simple trick.</p>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span id="tip">Tip: Press <span class="kbd">Ctrl</span> <span class="kbd">L</span> to jump to the address bar.</span>
+              <a class="link" href="#" onclick="ghostlineAction('learn'); return false;">Learn the shortcuts</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side panel -->
+      <aside class="card">
+        <div class="inner side">
+          <div class="panel">
+            <div class="panelTitle">
+              <h2>Quick Start</h2>
+              <span class="mini" id="clock">--:--</span>
+            </div>
+
+            <div class="list">
+              <div class="row">
+                <div class="ic" aria-hidden="true"></div>
+                <div>
+                  <b>Choose your mode</b>
+                  <span>Standard for daily use, or a stricter mode when you need extra privacy boundaries.</span>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="ic" aria-hidden="true"></div>
+                <div>
+                  <b>Review site data</b>
+                  <span>Clear cookies and storage per-site without wiping your whole life.</span>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="ic" aria-hidden="true"></div>
+                <div>
+                  <b>Lock down permissions</b>
+                  <span>Default deny, then allow only when it makes sense. You are the adult in the room.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panelTitle">
+              <h2>What's new</h2>
+              <span class="mini">local</span>
+            </div>
+            <div class="list">
+              <div class="row">
+                <div class="ic" aria-hidden="true"></div>
+                <div>
+                  <b>Welcome page</b>
+                  <span>This page is pure HTML/CSS so it loads instantly and works offline.</span>
+                </div>
+              </div>
+              <div class="row">
+                <div class="ic" aria-hidden="true"></div>
+                <div>
+                  <b>Keyboard-first UI</b>
+                  <span>Shortcuts are first-class. Mouse optional, like good software should be.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <span>Ghostline Browser</span>
+            <span id="build">Build: dev</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    // Hook these actions into your PySide6 / QtWebEngine bridge.
+    // Example: expose a QWebChannel object as `window.ghostline`.
+    function ghostlineAction(action){
+      try{
+        if (window.ghostline && typeof window.ghostline.action === "function"){
+          window.ghostline.action(action);
+        } else {
+          console.log("[Ghostline] action:", action);
+          flashTip(action);
+        }
+      } catch (e){
+        console.log("[Ghostline] action error:", e);
+      }
+    }
+
+    const tips = [
+      "Tip: Press Ctrl L to jump to the address bar.",
+      "Tip: Press Ctrl Shift N for a new private window.",
+      "Tip: Press Ctrl Shift I to open devtools.",
+      "Tip: Isolate logins by using separate profiles or containers.",
+      "Tip: Block third-party cookies to reduce cross-site tracking."
+    ];
+
+    function flashTip(action){
+      const el = document.getElementById("tip");
+      const prior = el.innerHTML;
+      el.textContent = "Action: " + action + " (wire this to your app bridge)";
+      setTimeout(() => el.innerHTML = prior, 1800);
+    }
+
+    function pad(n){ return String(n).padStart(2, "0"); }
+    function updateClock(){
+      const d = new Date();
+      document.getElementById("clock").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
+    updateClock();
+    setInterval(updateClock, 1000 * 10);
+
+    // Rotate tips every ~8 seconds
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % tips.length;
+      const el = document.getElementById("tip");
+      el.textContent = tips[i];
+    }, 8000);
+
+    // Optional: set build label from query string (e.g., welcome.html?build=0.3.1)
+    const params = new URLSearchParams(location.search);
+    const b = params.get("build");
+    if (b) document.getElementById("build").textContent = "Build: " + b;
+  </script>
+</body>
+</html>
