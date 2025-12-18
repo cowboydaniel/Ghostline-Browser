@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlSchemeHandler
-from PySide6.QtCore import QUrl, QByteArray
+from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlSchemeHandler, QWebEngineUrlScheme
+from PySide6.QtCore import QUrl, QByteArray, QBuffer
 
 
 class MimeTypeFixInterceptor(QWebEngineUrlRequestInterceptor):
@@ -33,8 +33,12 @@ class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
 
             if welcome_file.exists():
                 content = welcome_file.read_bytes()
-                request.reply(b"text/html; charset=utf-8", QByteArray(content))
             else:
                 # Fallback if file not found
-                fallback = b"<html><body>Welcome page not found</body></html>"
-                request.reply(b"text/html; charset=utf-8", QByteArray(fallback))
+                content = b"<html><body>Welcome page not found</body></html>"
+
+            # Use QBuffer to serve the content
+            buffer = QBuffer(self)
+            buffer.setData(QByteArray(content))
+            buffer.open(buffer.ReadOnly)
+            request.reply(b"text/html; charset=utf-8", buffer)

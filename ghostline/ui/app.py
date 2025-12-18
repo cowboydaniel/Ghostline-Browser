@@ -9,7 +9,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme
 
 from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine, setup_widevine_environment
@@ -22,6 +22,13 @@ from .components import NavigationBar, SettingsDialog
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _register_ghostline_scheme() -> None:
+    """Register the custom ghostline:// URL scheme."""
+    scheme = QWebEngineUrlScheme(b"ghostline")
+    scheme.setFlags(QWebEngineUrlScheme.LocalScheme | QWebEngineUrlScheme.LocalAccessAllowed)
+    QWebEngineUrlScheme.registerScheme(scheme)
 
 
 def _get_welcome_page_url() -> str:
@@ -416,6 +423,8 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
 def launch() -> None:
     configure_logging()
     startup_banner("ghostline")
+    # Register custom URL scheme BEFORE QApplication initialization
+    _register_ghostline_scheme()
     # Set up Widevine environment BEFORE QApplication initialization
     setup_widevine_environment()
     app = QApplication(sys.argv)
