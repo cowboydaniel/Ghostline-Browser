@@ -117,6 +117,20 @@ class BrowserTab:
         self.title = "New Tab"
 
 
+class GhostlineWebPage(QWebEnginePage):
+    """Custom web page that captures JavaScript console messages."""
+
+    def javaScriptConsoleMessage(self, level, message, line_number, source_id):
+        """Capture and log JavaScript console messages."""
+        level_str = {
+            QWebEnginePage.InfoMessageLevel: "INFO",
+            QWebEnginePage.WarningMessageLevel: "WARNING",
+            QWebEnginePage.ErrorMessageLevel: "ERROR"
+        }.get(level, "UNKNOWN")
+
+        print(f"[JS-CONSOLE-{level_str}] {message} (line {line_number}, source: {source_id})", flush=True)
+
+
 class GhostlineWindow(QMainWindow):
     """Hardened browser shell with typed signals and status surfaces."""
 
@@ -257,7 +271,7 @@ class GhostlineWindow(QMainWindow):
         web_view.setPage(web_view.page())
 
         # Set up the page with shared profile
-        page = QWebEnginePage(self.shared_profile, web_view)
+        page = GhostlineWebPage(self.shared_profile, web_view)
         web_view.setPage(page)
 
         # Set up web channel for JavaScript bridge
