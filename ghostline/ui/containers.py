@@ -37,12 +37,26 @@ class ContainerUX:
 
     def _build_templates(self) -> Dict[str, ContainerPolicyBundle]:
         return {
+            "balanced": ContainerPolicyBundle(
+                name="balanced",
+                uniformity_preset="balanced",
+                tor_required=False,
+                proxy_mode="standard",
+                notes=["Fingerprint smoothing", "Proxy optional"],
+            ),
             "research": ContainerPolicyBundle(
                 name="research",
                 uniformity_preset="strict",
                 tor_required=True,
                 proxy_mode="tor",
                 notes=["Sensitive lookups isolated", "Strict capability mask"],
+            ),
+            "strict": ContainerPolicyBundle(
+                name="strict",
+                uniformity_preset="strict",
+                tor_required=False,
+                proxy_mode="hardened",
+                notes=["Maximum uniformity", "WebGPU blocked"],
             ),
             "shopping": ContainerPolicyBundle(
                 name="shopping",
