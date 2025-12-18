@@ -41,7 +41,7 @@ class EntropyBudget:
 class DeviceRandomizer:
     """Randomizes device class attributes with stability windows."""
 
-    seed: str = "ghostline-device"
+    seed: str = "ghostline"
     stability_window: int = 3
     randomized: Dict[int, Dict[str, str | int]] = field(default_factory=dict)
 
