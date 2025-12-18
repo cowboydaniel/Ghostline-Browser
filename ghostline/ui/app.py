@@ -76,6 +76,7 @@ class GhostlineWebBridge(QObject):
     def action(self, action_name: str) -> None:
         """Handle actions from JavaScript."""
         LOGGER.info("bridge_action_received", extra={"action": action_name})
+        print(f"[BRIDGE] Action received: {action_name}", flush=True)
 
         if action_name == "newtab":
             self.window._new_tab()
@@ -459,13 +460,17 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
                 scripts.remove(script)
 
         # Create the web channel setup script
+        # QWebChannel will be loaded from qwebchannel.js via the HTML <script> tag
         script = QWebEngineScript()
         script.setName(script_name)
         script.setSourceCode("""
-if (typeof QWebChannel !== 'undefined') {
+if (typeof QWebChannel !== 'undefined' && qt && qt.webChannelTransport) {
     new QWebChannel(qt.webChannelTransport, function(channel) {
         window.ghostline = channel.objects.ghostline;
+        console.log('[Ghostline] Web channel initialized');
     });
+} else {
+    console.log('[Ghostline] QWebChannel not available');
 }
 """)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
@@ -474,6 +479,7 @@ if (typeof QWebChannel !== 'undefined') {
 
         scripts.insert(script)
         LOGGER.info("web_channel_script_installed", extra={"tab_index": tab_index})
+        print(f"[WEBCHANNEL] Script installed for tab {tab_index}", flush=True)
 
     def _open_settings(self) -> None:
         """Open settings in a new tab."""
