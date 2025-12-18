@@ -5,11 +5,11 @@ import logging
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton, QDialog, QVBoxLayout, QTextEdit
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme, QWebChannel
 
 from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine, setup_widevine_environment
@@ -22,6 +22,70 @@ from .components import NavigationBar, SettingsDialog
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+class KeyboardShortcutsDialog(QDialog):
+    """Dialog displaying keyboard shortcuts for the browser."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Keyboard Shortcuts")
+        self.resize(500, 600)
+
+        layout = QVBoxLayout(self)
+
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setMarkdown("""# Ghostline Browser Shortcuts
+
+## Navigation
+- **Ctrl+L** - Jump to address bar
+- **Ctrl+T** - New tab
+- **Ctrl+W** - Close current tab
+- **Ctrl+Tab** - Next tab
+- **Ctrl+Shift+Tab** - Previous tab
+- **Alt+Left** - Back
+- **Alt+Right** - Forward
+- **F5** or **Ctrl+R** - Reload page
+- **Ctrl+Shift+R** - Hard reload
+
+## Privacy & Settings
+- **Ctrl+P** - Privacy Dashboard
+- **Ctrl+,** - Settings
+- **Ctrl+Shift+N** - New session (about:blank)
+
+## Developer
+- **Ctrl+Shift+I** - DevTools
+
+## Other
+- **Ctrl+Q** - Quit browser
+""")
+        layout.addWidget(text_edit)
+        self.setLayout(layout)
+
+
+class GhostlineWebBridge(QObject):
+    """Bridge for JavaScript to communicate with the Ghostline application."""
+
+    def __init__(self, window: "GhostlineWindow") -> None:
+        super().__init__()
+        self.window = window
+
+    @Slot(str)
+    def action(self, action_name: str) -> None:
+        """Handle actions from JavaScript."""
+        LOGGER.info("bridge_action_received", extra={"action": action_name})
+
+        if action_name == "newtab":
+            self.window._new_tab()
+        elif action_name == "privacy":
+            self.window._show_privacy_dashboard()
+        elif action_name == "settings":
+            self.window._open_settings()
+        elif action_name == "learn":
+            self.window._show_keyboard_shortcuts()
+        else:
+            LOGGER.warning("unknown_bridge_action", extra={"action": action_name})
 
 
 def _register_ghostline_scheme() -> None:
@@ -59,6 +123,9 @@ class GhostlineWindow(QMainWindow):
         self.compatibility_advisor = StreamingCompatibilityAdvisor()
         self.home_url = home_url
         self._compatibility_note: str | None = None
+
+        # Create web bridge for JavaScript communication
+        self.web_bridge = GhostlineWebBridge(self)
 
         # Initialize shared profile for all tabs
         self.default_container_name = "default"
@@ -186,6 +253,11 @@ class GhostlineWindow(QMainWindow):
         page = QWebEnginePage(self.shared_profile, web_view)
         web_view.setPage(page)
 
+        # Set up web channel for JavaScript bridge
+        web_channel = QWebChannel(page)
+        web_channel.registerObject("ghostline", self.web_bridge)
+        page.setWebChannel(web_channel)
+
         # Create tab wrapper
         tab = BrowserTab(web_view, self.default_container_name)
         self.tabs[tab_index] = tab
@@ -197,6 +269,9 @@ class GhostlineWindow(QMainWindow):
 
         # Install fingerprint protection for this tab
         self._install_fingerprint_protection_for_tab(tab_index)
+
+        # Install web channel script for welcome page
+        self._install_web_channel_script_for_tab(tab_index)
 
         # Add to tab widget
         self.tab_widget.addTab(web_view, "New Tab")
@@ -368,6 +443,37 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         scripts.insert(script)
         LOGGER.info("fingerprint_protection_installed", extra={"origin": origin, "container": container_name, "tab_index": tab_index})
 
+    def _install_web_channel_script_for_tab(self, tab_index: int) -> None:
+        """Install a script that sets up the web channel for a specific tab."""
+        if tab_index not in self.tabs:
+            return
+
+        profile = self.shared_profile
+        scripts = profile.scripts()
+
+        # Remove old web channel script if exists for this tab
+        script_name = f"ghostline-web-channel-{tab_index}"
+        for script in scripts.toList():
+            if script.name() == script_name:
+                scripts.remove(script)
+
+        # Create the web channel setup script
+        script = QWebEngineScript()
+        script.setName(script_name)
+        script.setSourceCode("""
+if (typeof QWebChannel !== 'undefined') {
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        window.ghostline = channel.objects.ghostline;
+    });
+}
+""")
+        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentStart)
+        script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        script.setRunsOnSubFrames(False)
+
+        scripts.insert(script)
+        LOGGER.info("web_channel_script_installed", extra={"tab_index": tab_index})
+
     def _open_settings(self) -> None:
         dialog = SettingsDialog(self.dashboard, self, container=self.default_container_name)
         if dialog.exec():
@@ -379,6 +485,73 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
                     container_badge.isolation_badge,
                 )
             self._refresh_privacy_summary()
+
+    def _show_privacy_dashboard(self) -> None:
+        """Show the privacy dashboard in a new tab."""
+        # For now, we'll navigate to a placeholder URL
+        # In the future, this could show a full dashboard
+        current_tab = self._get_current_tab()
+        if current_tab:
+            # Create a simple privacy dashboard view
+            summary = self.dashboard.status_for_container(self.default_container_name)
+            gating = self.dashboard.gating_snapshot(self.default_container_name)
+            noise = self.dashboard.calibrated_noise_for(self.default_container_name)
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Privacy Dashboard</title>
+                <style>
+                    body {{ font-family: system-ui; color: #fff; background: #070A12; padding: 20px; }}
+                    .container {{ max-width: 1200px; margin: 0 auto; }}
+                    h1 {{ color: #7C5CFF; }}
+                    .status {{ background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 10px 0; }}
+                    .status h2 {{ margin-top: 0; font-size: 18px; color: #2EE9A6; }}
+                    .status-item {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }}
+                    .status-item label {{ color: rgba(255,255,255,0.6); }}
+                    .status-item value {{ font-weight: bold; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Privacy Dashboard</h1>
+
+                    <div class="status">
+                        <h2>Container Status</h2>
+                        <div class="status-item"><label>Mode:</label><value>{summary.get('mode', 'N/A')}</value></div>
+                        <div class="status-item"><label>Uniformity:</label><value>{summary.get('uniformity', 'N/A')}</value></div>
+                        <div class="status-item"><label>Entropy:</label><value>{summary.get('entropy_bits', 'N/A')} bits</value></div>
+                        <div class="status-item"><label>ECH:</label><value>{'On' if summary.get('ech') else 'Off'}</value></div>
+                        <div class="status-item"><label>HTTPS-Only:</label><value>{'On' if summary.get('https_only') else 'Off'}</value></div>
+                        <div class="status-item"><label>Tor:</label><value>{'On' if summary.get('tor') else 'Off'}</value></div>
+                    </div>
+
+                    <div class="status">
+                        <h2>API Gates</h2>
+                        {''.join(f'<div class="status-item"><label>{api}:</label><value>{chr(10003) + " Allowed" if allowed else chr(10007) + " Blocked"}</value></div>' for api, allowed in gating.items())}
+                    </div>
+
+                    <div class="status">
+                        <h2>Noise Configuration</h2>
+                        <div class="status-item"><label>Canvas Noise (ΔR/ΔG/ΔB):</label><value>{noise['canvas']['r']:.2f}/{noise['canvas']['g']:.2f}/{noise['canvas']['b']:.2f}</value></div>
+                        <div class="status-item"><label>Audio Noise:</label><value>{noise['audio']:.2f}</value></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            # Navigate to a data URL with the dashboard content
+            from urllib.parse import quote
+            data_url = f"data:text/html,{quote(html_content)}"
+            current_tab.web_view.load(QUrl(data_url))
+        LOGGER.info("privacy_dashboard_shown")
+
+    def _show_keyboard_shortcuts(self) -> None:
+        """Show keyboard shortcuts dialog."""
+        dialog = KeyboardShortcutsDialog(self)
+        dialog.exec()
+        LOGGER.info("keyboard_shortcuts_shown")
 
     def _refresh_privacy_summary(self) -> None:
         summary = self.dashboard.status_for_container(self.default_container_name)
