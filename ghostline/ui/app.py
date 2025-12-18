@@ -17,7 +17,7 @@ from ghostline.privacy.compatibility import StreamingCompatibilityAdvisor
 from ghostline.privacy.injector import FingerprintInjector
 from ghostline.privacy.rfp import unified_user_agent
 from ghostline.ui.dashboard import PrivacyDashboard
-from ghostline.ui.interceptor import MimeTypeFixInterceptor
+from ghostline.ui.interceptor import MimeTypeFixInterceptor, WelcomePageSchemeHandler
 from .components import NavigationBar, SettingsDialog
 
 
@@ -25,10 +25,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _get_welcome_page_url() -> str:
-    """Get the file:// URL for the welcome page."""
-    media_dir = Path(__file__).parent.parent / "media"
-    welcome_file = media_dir / "welcome.html"
-    return welcome_file.as_uri()
+    """Get the URL for the welcome page."""
+    return "about:welcome"
 
 
 class BrowserTab:
@@ -75,6 +73,10 @@ class GhostlineWindow(QMainWindow):
         # Install request interceptor to fix MIME type issues
         interceptor = MimeTypeFixInterceptor()
         self.shared_profile.setUrlRequestInterceptor(interceptor)
+
+        # Install custom scheme handler for about:welcome
+        scheme_handler = WelcomePageSchemeHandler(self)
+        self.shared_profile.installUrlSchemeHandler(b"about", scheme_handler)
 
         # Initialize tab management
         self.tab_widget = QTabWidget(self)
@@ -163,7 +165,7 @@ class GhostlineWindow(QMainWindow):
         if current_index >= 0:
             self._close_tab(current_index)
 
-    def _new_tab(self, url: str = "about:blank") -> None:
+    def _new_tab(self, url: str = "about:welcome") -> None:
         """Create a new tab."""
         tab_index = self.tab_counter
         self.tab_counter += 1
