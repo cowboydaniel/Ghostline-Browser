@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QUrl, QObject, Signal, Slot
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton, QDialog, QVBoxLayout, QTextEdit
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme, QWebEnginePage
@@ -100,6 +100,14 @@ def _register_ghostline_scheme() -> None:
     scheme = QWebEngineUrlScheme(b"ghostline")
     scheme.setFlags(QWebEngineUrlScheme.LocalScheme | QWebEngineUrlScheme.LocalAccessAllowed)
     QWebEngineUrlScheme.registerScheme(scheme)
+
+
+def _load_app_icon() -> QIcon:
+    """Load the application icon from the bundled assets."""
+
+    assets_dir = Path(__file__).resolve().parent / "assets"
+    icon_path = assets_dir / "ghostline-icon.svg"
+    return QIcon(str(icon_path))
 
 
 def _get_welcome_page_url() -> str:
@@ -634,6 +642,9 @@ def launch() -> None:
     # Set up Widevine environment BEFORE QApplication initialization
     setup_widevine_environment()
     app = QApplication(sys.argv)
+    icon = _load_app_icon()
+    app.setWindowIcon(icon)
     window = GhostlineWindow()
+    window.setWindowIcon(icon)
     window.show()
     sys.exit(app.exec())
