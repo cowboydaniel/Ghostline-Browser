@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Privacy Dashboard - Ghostline Browser</title>
+
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0B1222;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.64);
+      --hair:rgba(255,255,255,.12);
+
+      --accent:#7C5CFF;
+      --accent2:#2EE9A6;
+      --accent3:#53A7FF;
+
+      --radius:24px;
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 15%, rgba(124,92,255,.25), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 700px at 50% 90%, rgba(83,167,255,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .noise{
+      pointer-events:none;
+      position:fixed;
+      inset:0;
+      opacity:.065;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding: clamp(20px, 4vw, 48px);
+    }
+
+    .shell{
+      width:min(1200px, 100%);
+      display:grid;
+      gap:24px;
+    }
+
+    .card{
+      position:relative;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(900px 320px at 25% 0%, rgba(124,92,255,.25), transparent 65%),
+        radial-gradient(900px 360px at 80% 15%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 360px at 55% 100%, rgba(83,167,255,.18), transparent 60%);
+      opacity:.85;
+      pointer-events:none;
+      filter:saturate(1.15);
+    }
+
+    .card > .inner{
+      position:relative;
+      padding: clamp(22px, 3.6vw, 36px);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--hair);
+      margin-bottom:20px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .brand h1{
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height:1.1;
+      margin:0;
+      letter-spacing:-.02em;
+    }
+    .brand p{
+      margin:2px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      font-family:var(--mono);
+    }
+
+    h2{
+      font-size: clamp(24px, 3vw, 36px);
+      line-height:1.1;
+      letter-spacing:-.04em;
+      margin:0 0 24px 0;
+    }
+
+    .section{
+      margin-bottom:32px;
+    }
+
+    .section h3{
+      font-size:16px;
+      margin:0 0 12px 0;
+      color: rgba(255,255,255,.82);
+      letter-spacing:.02em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      font-weight:600;
+    }
+
+    .setting-group{
+      display:grid;
+      gap:12px;
+      margin-bottom:20px;
+    }
+
+    .setting-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+
+    .setting-label{
+      flex:1;
+    }
+
+    .setting-label b{
+      display:block;
+      font-size: 14px;
+      margin-bottom:4px;
+    }
+
+    .setting-label span{
+      display:block;
+      color: rgba(255,255,255,.64);
+      font-size: 12.5px;
+      line-height:1.35;
+    }
+
+    .toggle{
+      appearance:none;
+      width:50px;
+      height:28px;
+      background: rgba(255,255,255,.12);
+      border:none;
+      border-radius:14px;
+      cursor:pointer;
+      position:relative;
+      transition: background .2s ease;
+    }
+
+    .toggle::after{
+      content:"";
+      position:absolute;
+      width:24px;
+      height:24px;
+      background:white;
+      border-radius:50%;
+      top:2px;
+      left:2px;
+      transition: left .2s ease;
+    }
+
+    .toggle:checked{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+    }
+
+    .toggle:checked::after{
+      left:24px;
+    }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight:650;
+      font-size: 14px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      user-select:none;
+    }
+
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+      color: rgba(10,12,18,.92);
+      box-shadow: 0 14px 36px rgba(124,92,255,.20), 0 14px 36px rgba(46,233,166,.10);
+    }
+    .btnPrimary:hover{ transform: translateY(-1px); }
+    .btnPrimary:active{ transform: translateY(0px) scale(.99); }
+
+    .btnGhost{
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.28);
+    }
+    .btnGhost:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.18);
+      transform: translateY(-1px);
+    }
+    .btnGhost:active{ transform: translateY(0px) scale(.99); }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:20px;
+      flex-wrap:wrap;
+    }
+
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.56);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .toggle, .btn{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="shell">
+      <div class="card">
+        <div class="inner">
+          <div class="topbar">
+            <div class="brand">
+              <div>
+                <h1>Privacy Dashboard</h1>
+                <p>Control your privacy and security settings</p>
+              </div>
+            </div>
+          </div>
+
+          <h2>Privacy & Security Settings</h2>
+
+          <div class="section">
+            <h3>Network Privacy</h3>
+            <div class="setting-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Block third-party cookies</b>
+                  <span>Reduce cross-site tracking by blocking cookies from external domains</span>
+                </div>
+                <input type="checkbox" class="toggle" checked />
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Enable DNS over HTTPS</b>
+                  <span>Encrypt your DNS queries to prevent ISP tracking</span>
+                </div>
+                <input type="checkbox" class="toggle" checked />
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Device Fingerprinting</h3>
+            <div class="setting-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Randomize user agent</b>
+                  <span>Vary browser identification to reduce fingerprinting</span>
+                </div>
+                <input type="checkbox" class="toggle" checked />
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Spoof WebGL renderer</b>
+                  <span>Hide GPU information to prevent hardware-based tracking</span>
+                </div>
+                <input type="checkbox" class="toggle" checked />
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Randomize timezone</b>
+                  <span>Use a random timezone instead of your actual location</span>
+                </div>
+                <input type="checkbox" class="toggle" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Storage & Permissions</h3>
+            <div class="setting-group">
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Clear cookies on exit</b>
+                  <span>Automatically delete cookies when closing the browser</span>
+                </div>
+                <input type="checkbox" class="toggle" />
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">
+                  <b>Site isolation</b>
+                  <span>Isolate each website in its own process for better security</span>
+                </div>
+                <input type="checkbox" class="toggle" checked />
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btnPrimary" onclick="saveDashboard()">Save Changes</button>
+            <button class="btn btnGhost" onclick="clearAllData()">Clear All Data</button>
+          </div>
+
+          <div class="footer">
+            <span>Ghostline Browser - Privacy Dashboard</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function saveDashboard(){
+      console.log("Privacy settings saved");
+      if (window.ghostline && typeof window.ghostline.action === "function"){
+        window.ghostline.action("save_privacy");
+      }
+    }
+
+    function clearAllData(){
+      if (confirm("This will clear all cookies, cache, and stored data. Continue?")) {
+        console.log("Clearing all data");
+        if (window.ghostline && typeof window.ghostline.action === "function"){
+          window.ghostline.action("clear_data");
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Settings - Ghostline Browser</title>
+
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0B1222;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.64);
+      --hair:rgba(255,255,255,.12);
+
+      --accent:#7C5CFF;
+      --accent2:#2EE9A6;
+      --accent3:#53A7FF;
+
+      --radius:24px;
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 15%, rgba(124,92,255,.25), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 700px at 50% 90%, rgba(83,167,255,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .noise{
+      pointer-events:none;
+      position:fixed;
+      inset:0;
+      opacity:.065;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding: clamp(20px, 4vw, 48px);
+    }
+
+    .shell{
+      width:min(1200px, 100%);
+      display:grid;
+      grid-template-columns: 250px 1fr;
+      gap:24px;
+    }
+
+    @media (max-width: 768px){
+      .shell{ grid-template-columns: 1fr; }
+      .sidebar{ display:none; }
+    }
+
+    .card{
+      position:relative;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(900px 320px at 25% 0%, rgba(124,92,255,.25), transparent 65%),
+        radial-gradient(900px 360px at 80% 15%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 360px at 55% 100%, rgba(83,167,255,.18), transparent 60%);
+      opacity:.85;
+      pointer-events:none;
+      filter:saturate(1.15);
+    }
+
+    .card > .inner{
+      position:relative;
+      padding: clamp(22px, 3.6vw, 36px);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--hair);
+      margin-bottom:20px;
+    }
+
+    .brand h1{
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height:1.1;
+      margin:0;
+      letter-spacing:-.02em;
+    }
+    .brand p{
+      margin:2px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      font-family:var(--mono);
+    }
+
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .nav-item{
+      padding:12px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.72);
+      cursor:pointer;
+      font-size:14px;
+      transition: all .12s ease;
+      user-select:none;
+    }
+
+    .nav-item:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.14);
+      color: rgba(255,255,255,.92);
+    }
+
+    .nav-item.active{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+      color: rgba(10,12,18,.92);
+      border-color: transparent;
+    }
+
+    h2{
+      font-size: clamp(24px, 3vw, 36px);
+      line-height:1.1;
+      letter-spacing:-.04em;
+      margin:0 0 24px 0;
+    }
+
+    .section{
+      margin-bottom:32px;
+    }
+
+    .section h3{
+      font-size:16px;
+      margin:0 0 12px 0;
+      color: rgba(255,255,255,.82);
+      letter-spacing:.02em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      font-weight:600;
+    }
+
+    .setting-group{
+      display:grid;
+      gap:12px;
+      margin-bottom:20px;
+    }
+
+    .setting-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+
+    .setting-label{
+      flex:1;
+    }
+
+    .setting-label b{
+      display:block;
+      font-size: 14px;
+      margin-bottom:4px;
+    }
+
+    .setting-label span{
+      display:block;
+      color: rgba(255,255,255,.64);
+      font-size: 12.5px;
+      line-height:1.35;
+    }
+
+    select, input[type="text"]{
+      appearance:none;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: rgba(255,255,255,.92);
+      padding: 8px 12px;
+      font-family: var(--sans);
+      cursor:pointer;
+    }
+
+    select{
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffffff' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+
+    .toggle{
+      appearance:none;
+      width:50px;
+      height:28px;
+      background: rgba(255,255,255,.12);
+      border:none;
+      border-radius:14px;
+      cursor:pointer;
+      position:relative;
+      transition: background .2s ease;
+    }
+
+    .toggle::after{
+      content:"";
+      position:absolute;
+      width:24px;
+      height:24px;
+      background:white;
+      border-radius:50%;
+      top:2px;
+      left:2px;
+      transition: left .2s ease;
+    }
+
+    .toggle:checked{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+    }
+
+    .toggle:checked::after{
+      left:24px;
+    }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight:650;
+      font-size: 14px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      user-select:none;
+    }
+
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(124,92,255,.98), rgba(46,233,166,.86));
+      color: rgba(10,12,18,.92);
+      box-shadow: 0 14px 36px rgba(124,92,255,.20), 0 14px 36px rgba(46,233,166,.10);
+    }
+    .btnPrimary:hover{ transform: translateY(-1px); }
+    .btnPrimary:active{ transform: translateY(0px) scale(.99); }
+
+    .btnGhost{
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 24px rgba(0,0,0,.28);
+    }
+    .btnGhost:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.18);
+      transform: translateY(-1px);
+    }
+    .btnGhost:active{ transform: translateY(0px) scale(.99); }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:20px;
+      flex-wrap:wrap;
+    }
+
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.56);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .toggle, .btn, .nav-item{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="shell">
+      <aside class="card sidebar">
+        <div class="inner" style="padding: 14px;">
+          <div class="nav-item active" onclick="switchTab('general')">General</div>
+          <div class="nav-item" onclick="switchTab('appearance')">Appearance</div>
+          <div class="nav-item" onclick="switchTab('advanced')">Advanced</div>
+          <div class="nav-item" onclick="switchTab('about')">About</div>
+        </div>
+      </aside>
+
+      <div class="card">
+        <div class="inner">
+          <div class="topbar">
+            <div>
+              <h1>Settings</h1>
+              <p>Customize your browsing experience</p>
+            </div>
+          </div>
+
+          <!-- General Settings -->
+          <div id="general-tab">
+            <h2>General</h2>
+
+            <div class="section">
+              <h3>Startup</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Home page</b>
+                    <span>Open this page when starting Ghostline</span>
+                  </div>
+                  <select>
+                    <option>Blank page</option>
+                    <option selected>Welcome page</option>
+                    <option>Custom URL</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Downloads</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Download location</b>
+                    <span>Where to save downloaded files</span>
+                  </div>
+                  <button class="btn btnGhost">Browse</button>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Ask where to save each file</b>
+                    <span>Prompt before downloading</span>
+                  </div>
+                  <input type="checkbox" class="toggle" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Appearance Settings -->
+          <div id="appearance-tab" style="display:none;">
+            <h2>Appearance</h2>
+
+            <div class="section">
+              <h3>Theme</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>UI Theme</b>
+                    <span>Choose between light and dark modes</span>
+                  </div>
+                  <select>
+                    <option>Light</option>
+                    <option selected>Dark</option>
+                    <option>System</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Font</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Font size</b>
+                    <span>Default text size in web pages</span>
+                  </div>
+                  <select>
+                    <option>Small</option>
+                    <option selected>Medium</option>
+                    <option>Large</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced Settings -->
+          <div id="advanced-tab" style="display:none;">
+            <h2>Advanced</h2>
+
+            <div class="section">
+              <h3>System</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Hardware acceleration</b>
+                    <span>Use GPU for better performance</span>
+                  </div>
+                  <input type="checkbox" class="toggle" checked />
+                </div>
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Smooth scrolling</b>
+                    <span>Animate page scrolling</span>
+                  </div>
+                  <input type="checkbox" class="toggle" checked />
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Developer Tools</h3>
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div class="setting-label">
+                    <b>Enable developer console</b>
+                    <span>Access developer tools with F12</span>
+                  </div>
+                  <input type="checkbox" class="toggle" checked />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- About -->
+          <div id="about-tab" style="display:none;">
+            <h2>About Ghostline Browser</h2>
+
+            <div class="section">
+              <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+                <div class="setting-label" style="margin-bottom: 10px;">
+                  <b>Version</b>
+                  <span>0.1.0 (Development)</span>
+                </div>
+                <div class="setting-label">
+                  <b>Privacy-first browsing with teeth</b>
+                  <span>Built for speed, clarity, and hardened privacy defaults. Stay in control of identity surfaces: storage, permissions, fingerprinting, and network mode.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Resources</h3>
+              <div class="setting-group">
+                <button class="btn btnGhost" onclick="externalLink()">Visit Project Repository</button>
+                <button class="btn btnGhost" onclick="externalLink()">Report an Issue</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btnPrimary" onclick="saveSettings()">Save Changes</button>
+            <button class="btn btnGhost" onclick="resetSettings()">Reset to Defaults</button>
+          </div>
+
+          <div class="footer">
+            <span>Ghostline Browser - Settings</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function switchTab(tab){
+      // Hide all tabs
+      document.getElementById('general-tab').style.display = 'none';
+      document.getElementById('appearance-tab').style.display = 'none';
+      document.getElementById('advanced-tab').style.display = 'none';
+      document.getElementById('about-tab').style.display = 'none';
+
+      // Show selected tab
+      document.getElementById(tab + '-tab').style.display = 'block';
+
+      // Update nav items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+
+    function saveSettings(){
+      console.log("Settings saved");
+      if (window.ghostline && typeof window.ghostline.action === "function"){
+        window.ghostline.action("save_settings");
+      }
+    }
+
+    function resetSettings(){
+      if (confirm("Reset all settings to defaults?")) {
+        console.log("Settings reset");
+        if (window.ghostline && typeof window.ghostline.action === "function"){
+          window.ghostline.action("reset_settings");
+        }
+      }
+    }
+
+    function externalLink(){
+      if (window.ghostline && typeof window.ghostline.action === "function"){
+        window.ghostline.action("external_link");
+      }
+    }
+  </script>
+</body>
+</html>

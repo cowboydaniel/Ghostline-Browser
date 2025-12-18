@@ -20,24 +20,38 @@ class MimeTypeFixInterceptor(QWebEngineUrlRequestInterceptor):
 
 
 class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
-    """Handles ghostline:welcome requests by serving the welcome page HTML."""
+    """Handles ghostline: requests by serving HTML pages from the media directory."""
 
     def requestStarted(self, request):
-        """Handle requests for ghostline:welcome."""
+        """Handle requests for ghostline: URLs."""
         url = request.requestUrl().toString()
+        media_dir = Path(__file__).parent.parent / "media"
 
-        if url == "ghostline:welcome":
-            # Read the welcome.html file
-            media_dir = Path(__file__).parent.parent / "media"
-            welcome_file = media_dir / "welcome.html"
+        # Map URLs to filenames
+        url_map = {
+            "ghostline:welcome": "welcome.html",
+            "ghostline:privacy_dashboard": "privacy_dashboard.html",
+            "ghostline:settings": "settings.html",
+            "ghostline:shortcuts": "shortcuts.html",
+        }
 
-            if welcome_file.exists():
-                content = welcome_file.read_bytes()
+        filename = url_map.get(url)
+        if filename:
+            file_path = media_dir / filename
+            if file_path.exists():
+                content = file_path.read_bytes()
             else:
                 # Fallback if file not found
-                content = b"<html><body>Welcome page not found</body></html>"
+                content = b"<html><body>Page not found</body></html>"
 
             # Use QBuffer to serve the content
+            buffer = QBuffer(self)
+            buffer.setData(QByteArray(content))
+            buffer.open(QIODevice.ReadOnly)
+            request.reply(b"text/html; charset=utf-8", buffer)
+        else:
+            # Unknown ghostline: URL
+            content = b"<html><body>Unknown page</body></html>"
             buffer = QBuffer(self)
             buffer.setData(QByteArray(content))
             buffer.open(QIODevice.ReadOnly)

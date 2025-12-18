@@ -476,82 +476,17 @@ if (typeof QWebChannel !== 'undefined') {
         LOGGER.info("web_channel_script_installed", extra={"tab_index": tab_index})
 
     def _open_settings(self) -> None:
-        dialog = SettingsDialog(self.dashboard, self, container=self.default_container_name)
-        if dialog.exec():
-            container_badge = self.dashboard.container_ux.badge_for(self.default_container_name)
-            if container_badge:
-                self.navigation_bar.set_container_badge(
-                    self.default_container_name,
-                    container_badge.color,
-                    container_badge.isolation_badge,
-                )
-            self._refresh_privacy_summary()
+        """Open settings in a new tab."""
+        self._new_tab("ghostline:settings")
 
     def _show_privacy_dashboard(self) -> None:
         """Show the privacy dashboard in a new tab."""
-        # For now, we'll navigate to a placeholder URL
-        # In the future, this could show a full dashboard
-        current_tab = self._get_current_tab()
-        if current_tab:
-            # Create a simple privacy dashboard view
-            summary = self.dashboard.status_for_container(self.default_container_name)
-            gating = self.dashboard.gating_snapshot(self.default_container_name)
-            noise = self.dashboard.calibrated_noise_for(self.default_container_name)
-
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Privacy Dashboard</title>
-                <style>
-                    body {{ font-family: system-ui; color: #fff; background: #070A12; padding: 20px; }}
-                    .container {{ max-width: 1200px; margin: 0 auto; }}
-                    h1 {{ color: #7C5CFF; }}
-                    .status {{ background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 10px 0; }}
-                    .status h2 {{ margin-top: 0; font-size: 18px; color: #2EE9A6; }}
-                    .status-item {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }}
-                    .status-item label {{ color: rgba(255,255,255,0.6); }}
-                    .status-item value {{ font-weight: bold; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>Privacy Dashboard</h1>
-
-                    <div class="status">
-                        <h2>Container Status</h2>
-                        <div class="status-item"><label>Mode:</label><value>{summary.get('mode', 'N/A')}</value></div>
-                        <div class="status-item"><label>Uniformity:</label><value>{summary.get('uniformity', 'N/A')}</value></div>
-                        <div class="status-item"><label>Entropy:</label><value>{summary.get('entropy_bits', 'N/A')} bits</value></div>
-                        <div class="status-item"><label>ECH:</label><value>{'On' if summary.get('ech') else 'Off'}</value></div>
-                        <div class="status-item"><label>HTTPS-Only:</label><value>{'On' if summary.get('https_only') else 'Off'}</value></div>
-                        <div class="status-item"><label>Tor:</label><value>{'On' if summary.get('tor') else 'Off'}</value></div>
-                    </div>
-
-                    <div class="status">
-                        <h2>API Gates</h2>
-                        {''.join(f'<div class="status-item"><label>{api}:</label><value>{chr(10003) + " Allowed" if allowed else chr(10007) + " Blocked"}</value></div>' for api, allowed in gating.items())}
-                    </div>
-
-                    <div class="status">
-                        <h2>Noise Configuration</h2>
-                        <div class="status-item"><label>Canvas Noise (ΔR/ΔG/ΔB):</label><value>{noise['canvas']['r']:.2f}/{noise['canvas']['g']:.2f}/{noise['canvas']['b']:.2f}</value></div>
-                        <div class="status-item"><label>Audio Noise:</label><value>{noise['audio']:.2f}</value></div>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
-            # Navigate to a data URL with the dashboard content
-            from urllib.parse import quote
-            data_url = f"data:text/html,{quote(html_content)}"
-            current_tab.web_view.load(QUrl(data_url))
+        self._new_tab("ghostline:privacy_dashboard")
         LOGGER.info("privacy_dashboard_shown")
 
     def _show_keyboard_shortcuts(self) -> None:
-        """Show keyboard shortcuts dialog."""
-        dialog = KeyboardShortcutsDialog(self)
-        dialog.exec()
+        """Show keyboard shortcuts in a new tab."""
+        self._new_tab("ghostline:shortcuts")
         LOGGER.info("keyboard_shortcuts_shown")
 
     def _refresh_privacy_summary(self) -> None:

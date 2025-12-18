@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Keyboard Shortcuts - Ghostline Browser</title>
+
+  <style>
+    :root{
+      --bg0:#070A12;
+      --bg1:#0B1222;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.64);
+      --hair:rgba(255,255,255,.12);
+
+      --accent:#7C5CFF;
+      --accent2:#2EE9A6;
+      --accent3:#53A7FF;
+
+      --radius:24px;
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 15%, rgba(124,92,255,.25), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 700px at 50% 90%, rgba(83,167,255,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .noise{
+      pointer-events:none;
+      position:fixed;
+      inset:0;
+      opacity:.065;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding: clamp(20px, 4vw, 48px);
+    }
+
+    .shell{
+      width:min(1200px, 100%);
+      display:grid;
+      gap:24px;
+    }
+
+    .card{
+      position:relative;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(900px 320px at 25% 0%, rgba(124,92,255,.25), transparent 65%),
+        radial-gradient(900px 360px at 80% 15%, rgba(46,233,166,.18), transparent 60%),
+        radial-gradient(900px 360px at 55% 100%, rgba(83,167,255,.18), transparent 60%);
+      opacity:.85;
+      pointer-events:none;
+      filter:saturate(1.15);
+    }
+
+    .card > .inner{
+      position:relative;
+      padding: clamp(22px, 3.6vw, 36px);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--hair);
+      margin-bottom:20px;
+    }
+
+    .brand h1{
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height:1.1;
+      margin:0;
+      letter-spacing:-.02em;
+    }
+    .brand p{
+      margin:2px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      font-family:var(--mono);
+    }
+
+    h2{
+      font-size: clamp(24px, 3vw, 36px);
+      line-height:1.1;
+      letter-spacing:-.04em;
+      margin:0 0 24px 0;
+    }
+
+    .shortcuts-grid{
+      display:grid;
+      gap:24px;
+      margin-bottom:24px;
+    }
+
+    .category{
+      display:grid;
+      gap:12px;
+    }
+
+    .category h3{
+      font-size:16px;
+      margin:0 0 12px 0;
+      color: rgba(255,255,255,.82);
+      letter-spacing:.02em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      font-weight:600;
+    }
+
+    .shortcut-row{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:16px;
+      align-items:center;
+      padding:14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+
+    @media (max-width: 600px){
+      .shortcut-row{
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+    }
+
+    .shortcut-desc{
+      flex:1;
+    }
+
+    .shortcut-desc b{
+      display:block;
+      font-size: 14px;
+      margin-bottom:4px;
+    }
+
+    .shortcut-desc span{
+      display:block;
+      color: rgba(255,255,255,.64);
+      font-size: 12.5px;
+      line-height:1.35;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      font-weight:600;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.78);
+      display:inline-flex;
+      gap:6px;
+    }
+
+    .kbd span{
+      display:inline;
+      margin:0;
+      padding:0;
+    }
+
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.56);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      * { transition:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="shell">
+      <div class="card">
+        <div class="inner">
+          <div class="topbar">
+            <div>
+              <h1>Keyboard Shortcuts</h1>
+              <p>Master these shortcuts for faster browsing</p>
+            </div>
+          </div>
+
+          <h2>All Keyboard Shortcuts</h2>
+
+          <div class="shortcuts-grid">
+            <!-- Tabs & Windows -->
+            <div class="category">
+              <h3>Tabs & Windows</h3>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>New Tab</b>
+                  <span>Open a new tab in the current window</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>T</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>New Window</b>
+                  <span>Open a new browser window</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>N</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>New Private Window</b>
+                  <span>Open a new private browsing window</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>N</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Close Tab</b>
+                  <span>Close the current tab</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>W</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Close Window</b>
+                  <span>Close the entire browser window</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>W</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Reopen Closed Tab</b>
+                  <span>Restore the last closed tab</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>T</span></div>
+              </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="category">
+              <h3>Navigation</h3>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Go to Address Bar</b>
+                  <span>Focus the address bar to enter a URL or search</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>L</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Back</b>
+                  <span>Go to the previous page</span>
+                </div>
+                <div class="kbd"><span>Alt</span> + <span>←</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Forward</b>
+                  <span>Go to the next page</span>
+                </div>
+                <div class="kbd"><span>Alt</span> + <span>→</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Reload Page</b>
+                  <span>Refresh the current page</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>R</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Hard Reload</b>
+                  <span>Refresh bypassing cached content</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>R</span></div>
+              </div>
+            </div>
+
+            <!-- Page -->
+            <div class="category">
+              <h3>Page</h3>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Find in Page</b>
+                  <span>Search for text on the current page</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>F</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Print</b>
+                  <span>Print the current page</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>P</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Save Page</b>
+                  <span>Save the current page to disk</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>S</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Zoom In</b>
+                  <span>Increase the page zoom level</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>+</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Zoom Out</b>
+                  <span>Decrease the page zoom level</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>-</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Reset Zoom</b>
+                  <span>Reset zoom to default level</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>0</span></div>
+              </div>
+            </div>
+
+            <!-- Privacy & Settings -->
+            <div class="category">
+              <h3>Privacy & Settings</h3>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Open Settings</b>
+                  <span>Access browser settings and preferences</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>,</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Privacy Dashboard</b>
+                  <span>View and manage your privacy settings</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>P</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Clear Browsing Data</b>
+                  <span>Open the clear browsing data dialog</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>Delete</span></div>
+              </div>
+            </div>
+
+            <!-- Developer -->
+            <div class="category">
+              <h3>Developer Tools</h3>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Open Developer Tools</b>
+                  <span>Access the browser's developer console and inspector</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>I</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>View Page Source</b>
+                  <span>View the HTML source of the current page</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>U</span></div>
+              </div>
+              <div class="shortcut-row">
+                <div class="shortcut-desc">
+                  <b>Inspect Element</b>
+                  <span>Inspect elements on the page</span>
+                </div>
+                <div class="kbd"><span>Ctrl</span> + <span>Shift</span> + <span>C</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <span>Ghostline Browser - Keyboard Shortcuts</span>
+            <span>Keyboard-first UI for faster browsing</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
