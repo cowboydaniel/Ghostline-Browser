@@ -321,6 +321,9 @@ class GhostlineWindow(QMainWindow):
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         script.setRunsOnSubFrames(True)
 
+        # Only inject into actual web pages, not sandboxed pages like about:blank
+        script.setRunsOnUrl(QUrl("*://*/*"))
+
         scripts.insert(script)
         LOGGER.info("fingerprint_protection_installed", extra={"origin": origin, "container": container_name, "tab_index": tab_index})
 
