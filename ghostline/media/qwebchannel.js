@@ -107,5 +107,7 @@
         this.send({type: 'init'});
     }
 
+    console.log('[GHOSTLINE-DEBUG-INSIDE-IIFE] About to set window.QWebChannel, typeof QWebChannel =', typeof QWebChannel);
     window.QWebChannel = QWebChannel;
+    console.log('[GHOSTLINE-DEBUG-INSIDE-IIFE] Set window.QWebChannel =', typeof window.QWebChannel);
 })();
