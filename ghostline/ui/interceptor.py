@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlSchemeHandler, QWebEngineUrlScheme
-from PySide6.QtCore import QUrl, QByteArray, QBuffer
+from PySide6.QtCore import QUrl, QByteArray, QBuffer, QIODevice
 
 
 class MimeTypeFixInterceptor(QWebEngineUrlRequestInterceptor):
@@ -40,5 +40,5 @@ class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
             # Use QBuffer to serve the content
             buffer = QBuffer(self)
             buffer.setData(QByteArray(content))
-            buffer.open(buffer.ReadOnly)
+            buffer.open(QIODevice.ReadOnly)
             request.reply(b"text/html; charset=utf-8", buffer)
