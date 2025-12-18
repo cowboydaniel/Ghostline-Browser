@@ -453,24 +453,48 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         profile = self.shared_profile
         scripts = profile.scripts()
 
-        # Remove old web channel script if exists for this tab
+        # Remove old web channel scripts if they exist for this tab
         script_name = f"ghostline-web-channel-{tab_index}"
+        qwebchannel_script_name = f"ghostline-qwebchannel-lib-{tab_index}"
         for script in scripts.toList():
-            if script.name() == script_name:
+            if script.name() in (script_name, qwebchannel_script_name):
                 scripts.remove(script)
 
-        # Create the web channel setup script
-        # QWebChannel will be loaded from qwebchannel.js via the HTML <script> tag
+        # First, inject the QWebChannel library at DocumentCreation
+        # This ensures it's available before the page's own scripts run
+        qwebchannel_lib_script = QWebEngineScript()
+        qwebchannel_lib_script.setName(qwebchannel_script_name)
+
+        # Read the qwebchannel.js file from media directory
+        media_dir = Path(__file__).parent.parent / "media"
+        qwebchannel_file = media_dir / "qwebchannel.js"
+
+        if qwebchannel_file.exists():
+            qwebchannel_code = qwebchannel_file.read_text()
+        else:
+            # Fallback minimal implementation
+            qwebchannel_code = "console.log('[QWebChannel] Library not found');"
+
+        qwebchannel_lib_script.setSourceCode(qwebchannel_code)
+        qwebchannel_lib_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        qwebchannel_lib_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        qwebchannel_lib_script.setRunsOnSubFrames(False)
+        scripts.insert(qwebchannel_lib_script)
+
+        # Then, inject the initialization script at DocumentReady
+        # This runs after the QWebChannel library is loaded and the page is ready
         script = QWebEngineScript()
         script.setName(script_name)
         script.setSourceCode("""
 if (typeof QWebChannel !== 'undefined' && qt && qt.webChannelTransport) {
     new QWebChannel(qt.webChannelTransport, function(channel) {
         window.ghostline = channel.objects.ghostline;
-        console.log('[Ghostline] Web channel initialized');
+        console.log('[Ghostline] Web channel ready!');
     });
 } else {
-    console.log('[Ghostline] QWebChannel not available');
+    console.log('[Ghostline] QWebChannel or transport not available');
+    console.log('[Ghostline] QWebChannel type:', typeof QWebChannel);
+    console.log('[Ghostline] qt type:', typeof qt);
 }
 """)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
