@@ -6,7 +6,7 @@ import sys
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript
 
@@ -71,6 +71,12 @@ class GhostlineWindow(QMainWindow):
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self._close_tab)
         self.tab_widget.currentChanged.connect(self._on_tab_switched)
+
+        # Add "+" button to create new tabs
+        new_tab_btn = QPushButton("+", self)
+        new_tab_btn.setMaximumWidth(30)
+        new_tab_btn.clicked.connect(lambda: self._new_tab())
+        self.tab_widget.setCornerWidget(new_tab_btn)
 
         self.tabs: dict[int, BrowserTab] = {}
         self.tab_counter = 0
