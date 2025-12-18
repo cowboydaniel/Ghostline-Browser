@@ -1,76 +1,111 @@
 /**
- * Minimal QWebChannel implementation for local testing and fallback
- * This provides the QWebChannel class that the Qt WebEngine should provide via its resources.
+ * QWebChannel JavaScript library
+ * Based on Qt's implementation for communication between web pages and Qt C++
  */
+
 (function() {
     if (typeof QWebChannel !== 'undefined') {
         return; // Already loaded
     }
 
-    window.QWebChannel = function(transport, initCallback) {
+    function QWebChannel(transport, initCallback) {
+        if (typeof transport !== 'object') {
+            console.error('[QWebChannel] Invalid transport object');
+            return;
+        }
+
         this.transport = transport;
-        this.objects = {};
-        this.callbacks = {};
-        this.pendingMessages = [];
+        this.send = function(data) {
+            if (typeof data !== 'string') {
+                data = JSON.stringify(data);
+            }
+            this.transport.send(data);
+        };
 
-        var self = this;
-
-        // Listen for messages from the C++ side
-        this.transport.onmessage = function(event) {
+        this.onmessage = function(data) {
             try {
-                var message = JSON.parse(event.data);
-                if (message.type === 'response') {
-                    if (self.callbacks[message.id]) {
-                        self.callbacks[message.id](message.result);
-                        delete self.callbacks[message.id];
-                    }
-                } else if (message.type === 'init') {
-                    // Initialize objects
-                    if (message.objects) {
-                        for (var name in message.objects) {
-                            self.initObject(name, message.objects[name]);
-                        }
-                    }
-                    if (initCallback) {
-                        initCallback(self);
-                    }
-                }
+                var message = typeof data === 'string' ? JSON.parse(data) : data;
+                this.handleMessage(message);
             } catch (e) {
-                console.error('[QWebChannel] Error processing message:', e);
+                console.error('[QWebChannel] Error parsing message:', e);
             }
         };
 
-        // Request initialization
-        this.transport.send(JSON.stringify({ init: true }));
-    };
+        this.objects = {};
+        this.callbacks = {};
+        this.nextId = 1;
 
-    QWebChannel.prototype.initObject = function(name, methods) {
         var self = this;
-        this.objects[name] = {};
 
-        for (var i = 0; i < methods.length; i++) {
-            var method = methods[i];
-            this.objects[name][method] = (function(methodName) {
-                return function() {
-                    var args = Array.prototype.slice.call(arguments);
-                    var callback = null;
-                    if (args.length > 0 && typeof args[args.length - 1] === 'function') {
-                        callback = args.pop();
+        this.transport.onmessage = function(event) {
+            self.onmessage(event.data);
+        };
+
+        this.handleMessage = function(message) {
+            var response;
+
+            if (message.type === 'response') {
+                if (typeof this.callbacks[message.id] === 'function') {
+                    this.callbacks[message.id](message.data);
+                }
+                delete this.callbacks[message.id];
+            } else if (message.type === 'propertyUpdate') {
+                for (var i in message.data) {
+                    var obj = this.objects[message.object];
+                    if (obj) {
+                        obj[message.property] = message.data[i];
                     }
+                }
+            } else if (message.type === 'signal') {
+                var obj = this.objects[message.object];
+                if (obj) {
+                    obj[message.signal].apply(obj, message.args);
+                }
+            } else if (message.type === 'init') {
+                for (var name in message.objects) {
+                    this.initObject(name, message.objects[name], message.data[name]);
+                }
+                if (initCallback) {
+                    initCallback(this);
+                }
+            }
+        };
 
-                    var id = Math.random().toString(36);
-                    if (callback) {
-                        self.callbacks[id] = callback;
-                    }
+        this.initObject = function(name, methods, data) {
+            var obj = {};
+            for (var method in methods) {
+                obj[method] = (function(m) {
+                    return function() {
+                        var args = [];
+                        for (var i = 0; i < arguments.length; ++i) {
+                            if (typeof arguments[i] === 'function') {
+                                var id = self.nextId++;
+                                self.callbacks[id] = arguments[i];
+                                args.push({__callback__: id});
+                            } else {
+                                args.push(arguments[i]);
+                            }
+                        }
+                        self.send({
+                            type: 'method',
+                            object: name,
+                            method: m,
+                            args: args
+                        });
+                    };
+                })(method);
+            }
 
-                    self.transport.send(JSON.stringify({
-                        id: id,
-                        object: name,
-                        method: methodName,
-                        args: args
-                    }));
-                };
-            })(method);
-        }
-    };
+            for (var prop in data) {
+                obj[prop] = data[prop];
+            }
+
+            this.objects[name] = obj;
+        };
+
+        // Request initialization
+        this.send({type: 'init'});
+    }
+
+    window.QWebChannel = QWebChannel;
 })();
