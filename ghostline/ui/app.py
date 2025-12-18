@@ -157,7 +157,7 @@ class GhostlineWindow(QMainWindow):
         web_view.setPage(web_view.page())
 
         # Set up the page with shared profile
-        from PySide6.QtWebEngineWidgets import QWebEnginePage
+        from PySide6.QtWebEngineCore import QWebEnginePage
         page = QWebEnginePage(self.shared_profile, web_view)
         web_view.setPage(page)
 
