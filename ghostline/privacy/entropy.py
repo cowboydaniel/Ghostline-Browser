@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import hashlib
+import platform as platform_module
 import random
+import secrets
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -39,11 +41,43 @@ class EntropyBudget:
 
 @dataclass
 class DeviceRandomizer:
-    """Randomizes device class attributes with stability windows."""
+    """Randomizes device class attributes with stability windows.
 
-    seed: str = "ghostline-device"
+    Each browser session generates a new random seed, ensuring different
+    device configurations across sessions but stable within a session.
+    The spoofed OS is always different from the real OS.
+    """
+
+    seed: str = field(default_factory=lambda: f"ghostline-{secrets.token_hex(8)}")
     stability_window: int = 3
     randomized: Dict[int, Dict[str, str | int]] = field(default_factory=dict)
+    _platform_choices: List[str] = field(default_factory=lambda: DeviceRandomizer._get_spoofed_platforms())
+
+    @staticmethod
+    def _get_real_os() -> str:
+        """Detect the real operating system.
+
+        Returns:
+            'Windows', 'macOS', or 'Linux'
+        """
+        system = platform_module.system()
+        if system == "Windows":
+            return "Windows"
+        elif system == "Darwin":
+            return "macOS"
+        else:
+            return "Linux"
+
+    @staticmethod
+    def _get_spoofed_platforms() -> List[str]:
+        """Get list of platforms to spoof (excluding real OS).
+
+        Returns:
+            List of platform names that are not the real OS
+        """
+        real_os = DeviceRandomizer._get_real_os()
+        all_platforms = ["Windows", "macOS", "Linux"]
+        return [p for p in all_platforms if p != real_os]
 
     # Common screen resolutions for bucketing
     SCREEN_BUCKETS = [
@@ -66,7 +100,7 @@ class DeviceRandomizer:
             self.randomized[bucket] = {
                 "gpu": f"Ghostline GPU Class {rng.randint(1, 5)}",
                 "memory_gb": rng.choice([4, 8, 16]),
-                "platform": rng.choice(["Linux", "Windows", "macOS"]),
+                "platform": rng.choice(self._platform_choices),
             }
         return self.randomized[bucket]
 
