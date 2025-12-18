@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+import secrets
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -39,11 +40,17 @@ class EntropyBudget:
 
 @dataclass
 class DeviceRandomizer:
-    """Randomizes device class attributes with stability windows."""
+    """Randomizes device class attributes with stability windows.
 
-    seed: str = "ghostline"
+    Each browser session generates a new random seed, ensuring different
+    device configurations across sessions but stable within a session.
+    """
+
+    seed: str = field(default_factory=lambda: f"ghostline-{secrets.token_hex(8)}")
     stability_window: int = 3
     randomized: Dict[int, Dict[str, str | int]] = field(default_factory=dict)
+    # Exclude Linux to avoid matching user's real OS
+    PLATFORM_CHOICES: List[str] = field(default_factory=lambda: ["Windows", "macOS"])
 
     # Common screen resolutions for bucketing
     SCREEN_BUCKETS = [
@@ -66,7 +73,7 @@ class DeviceRandomizer:
             self.randomized[bucket] = {
                 "gpu": f"Ghostline GPU Class {rng.randint(1, 5)}",
                 "memory_gb": rng.choice([4, 8, 16]),
-                "platform": rng.choice(["Linux", "Windows", "macOS"]),
+                "platform": rng.choice(self.PLATFORM_CHOICES),
             }
         return self.randomized[bucket]
 
