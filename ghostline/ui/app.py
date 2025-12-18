@@ -509,11 +509,17 @@ console.log('[GHOSTLINE-DEBUG] Test script completed, __ghostline_test_ran =', w
         test_script.setRunsOnSubFrames(False)
         scripts.insert(test_script)
 
-        # Wrap qwebchannel code with debug logging
+        # Wrap qwebchannel code with debug logging and error handling
         wrapped_qwebchannel_code = f"""
 console.log('[GHOSTLINE-DEBUG] qwebchannel.js script starting');
 console.log('[GHOSTLINE-DEBUG] Before qwebchannel: window.QWebChannel =', typeof window.QWebChannel);
+console.log('[GHOSTLINE-DEBUG] About to execute qwebchannel.js content, length =', {len(qwebchannel_code)});
+try {{
 {qwebchannel_code}
+}} catch(e) {{
+    console.error('[GHOSTLINE-DEBUG] Exception in qwebchannel.js:', e.message);
+    console.error('[GHOSTLINE-DEBUG] Stack:', e.stack);
+}}
 console.log('[GHOSTLINE-DEBUG] After qwebchannel: window.QWebChannel =', typeof window.QWebChannel);
 console.log('[GHOSTLINE-DEBUG] After qwebchannel: QWebChannel =', typeof QWebChannel);
 """
