@@ -9,7 +9,8 @@ from PySide6.QtCore import QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton, QDialog, QVBoxLayout, QTextEdit
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme, QWebChannel
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme
+from PySide6.QtWebChannel import QWebChannel
 
 from ghostline.logging_config import configure_logging, startup_banner
 from ghostline.media.drm import enable_widevine, setup_widevine_environment
