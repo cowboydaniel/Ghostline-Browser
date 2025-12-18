@@ -9,7 +9,7 @@ from PySide6.QtCore import QUrl, QObject, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QStatusBar, QTabWidget, QWidget, QPushButton, QDialog, QVBoxLayout, QTextEdit
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineUrlScheme, QWebEnginePage
 from PySide6.QtWebChannel import QWebChannel
 
 from ghostline.logging_config import configure_logging, startup_banner
@@ -104,9 +104,10 @@ def _get_welcome_page_url() -> str:
 class BrowserTab:
     """Wrapper for a web view tab with associated metadata."""
 
-    def __init__(self, web_view: QWebEngineView, container_name: str) -> None:
+    def __init__(self, web_view: QWebEngineView, container_name: str, web_channel: QWebChannel | None = None) -> None:
         self.web_view = web_view
         self.container_name = container_name
+        self.web_channel = web_channel  # Keep reference to prevent garbage collection
         self.title = "New Tab"
 
 
@@ -250,7 +251,6 @@ class GhostlineWindow(QMainWindow):
         web_view.setPage(web_view.page())
 
         # Set up the page with shared profile
-        from PySide6.QtWebEngineCore import QWebEnginePage
         page = QWebEnginePage(self.shared_profile, web_view)
         web_view.setPage(page)
 
@@ -259,8 +259,8 @@ class GhostlineWindow(QMainWindow):
         web_channel.registerObject("ghostline", self.web_bridge)
         page.setWebChannel(web_channel)
 
-        # Create tab wrapper
-        tab = BrowserTab(web_view, self.default_container_name)
+        # Create tab wrapper (stores web_channel to prevent garbage collection)
+        tab = BrowserTab(web_view, self.default_container_name, web_channel)
         self.tabs[tab_index] = tab
 
         # Connect signals for this tab
