@@ -512,8 +512,10 @@ console.log('[GHOSTLINE-DEBUG] Test script completed, __ghostline_test_ran =', w
         # Wrap qwebchannel code with debug logging
         wrapped_qwebchannel_code = f"""
 console.log('[GHOSTLINE-DEBUG] qwebchannel.js script starting');
+console.log('[GHOSTLINE-DEBUG] Before qwebchannel: window.QWebChannel =', typeof window.QWebChannel);
 {qwebchannel_code}
-console.log('[GHOSTLINE-DEBUG] qwebchannel.js script completed, typeof QWebChannel =', typeof QWebChannel);
+console.log('[GHOSTLINE-DEBUG] After qwebchannel: window.QWebChannel =', typeof window.QWebChannel);
+console.log('[GHOSTLINE-DEBUG] After qwebchannel: QWebChannel =', typeof QWebChannel);
 """
         qwebchannel_lib_script.setSourceCode(wrapped_qwebchannel_code)
         qwebchannel_lib_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
