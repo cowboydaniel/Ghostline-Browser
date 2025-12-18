@@ -33,12 +33,16 @@ class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
             "ghostline:privacy_dashboard": "privacy_dashboard.html",
             "ghostline:settings": "settings.html",
             "ghostline:shortcuts": "shortcuts.html",
+            "ghostline:qwebchannel": "qwebchannel.js",
         }
 
         filename = url_map.get(url)
         mime_type = b"text/html; charset=utf-8"
 
         if filename:
+            # Determine MIME type based on file extension
+            if filename.endswith(".js"):
+                mime_type = b"text/javascript; charset=utf-8"
 
             file_path = media_dir / filename
             if file_path.exists():
