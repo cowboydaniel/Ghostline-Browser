@@ -26,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 
 def _get_welcome_page_url() -> str:
     """Get the URL for the welcome page."""
-    return "about:welcome"
+    return "ghostline:welcome"
 
 
 class BrowserTab:
@@ -74,9 +74,9 @@ class GhostlineWindow(QMainWindow):
         interceptor = MimeTypeFixInterceptor()
         self.shared_profile.setUrlRequestInterceptor(interceptor)
 
-        # Install custom scheme handler for about:welcome
+        # Install custom scheme handler for ghostline:welcome
         scheme_handler = WelcomePageSchemeHandler(self)
-        self.shared_profile.installUrlSchemeHandler(b"about", scheme_handler)
+        self.shared_profile.installUrlSchemeHandler(b"ghostline", scheme_handler)
 
         # Initialize tab management
         self.tab_widget = QTabWidget(self)
@@ -165,7 +165,7 @@ class GhostlineWindow(QMainWindow):
         if current_index >= 0:
             self._close_tab(current_index)
 
-    def _new_tab(self, url: str = "about:welcome") -> None:
+    def _new_tab(self, url: str = "ghostline:welcome") -> None:
         """Create a new tab."""
         tab_index = self.tab_counter
         self.tab_counter += 1
