@@ -499,13 +499,23 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         # Add a test script before qwebchannel to see if scripts are executing
         test_script = QWebEngineScript()
         test_script.setName(f"ghostline-test-{tab_index}")
-        test_script.setSourceCode("window.__ghostline_test_ran = true;")
+        test_script.setSourceCode("""
+console.log('[GHOSTLINE-DEBUG] Test script executing at DocumentCreation');
+window.__ghostline_test_ran = true;
+console.log('[GHOSTLINE-DEBUG] Test script completed, __ghostline_test_ran =', window.__ghostline_test_ran);
+""")
         test_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         test_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         test_script.setRunsOnSubFrames(False)
         scripts.insert(test_script)
 
-        qwebchannel_lib_script.setSourceCode(qwebchannel_code)
+        # Wrap qwebchannel code with debug logging
+        wrapped_qwebchannel_code = f"""
+console.log('[GHOSTLINE-DEBUG] qwebchannel.js script starting');
+{qwebchannel_code}
+console.log('[GHOSTLINE-DEBUG] qwebchannel.js script completed, typeof QWebChannel =', typeof QWebChannel);
+"""
+        qwebchannel_lib_script.setSourceCode(wrapped_qwebchannel_code)
         qwebchannel_lib_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         qwebchannel_lib_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         qwebchannel_lib_script.setRunsOnSubFrames(False)
@@ -517,38 +527,35 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         script.setName(script_name)
         script.setSourceCode("""
 (function() {
+    console.log('[GHOSTLINE-DEBUG] Initialization script at DocumentReady starting');
     try {
         // Check if document creation scripts ran
         var testRan = !!window.__ghostline_test_ran;
+        console.log('[GHOSTLINE-DEBUG] testRan =', testRan);
+        console.log('[GHOSTLINE-DEBUG] typeof QWebChannel =', typeof QWebChannel);
+        console.log('[GHOSTLINE-DEBUG] typeof qt =', typeof qt);
+        console.log('[GHOSTLINE-DEBUG] qt.webChannelTransport =', typeof qt !== 'undefined' ? typeof qt.webChannelTransport : 'qt undefined');
 
         if (typeof QWebChannel === 'undefined') {
-            // Try to call debug via ghostline if available
-            if (window.ghostline && typeof window.ghostline.debug === 'function') {
-                window.ghostline.debug('At DocumentReady: test_ran=' + testRan + ', QWebChannel=undefined');
-            }
+            console.error('[GHOSTLINE-DEBUG] QWebChannel is undefined at DocumentReady!');
             return;
         }
 
         if (typeof qt === 'undefined' || typeof qt.webChannelTransport === 'undefined') {
-            if (window.ghostline && typeof window.ghostline.debug === 'function') {
-                window.ghostline.debug('At DocumentReady: test_ran=' + testRan + ', qt.webChannelTransport=undefined');
-            }
+            console.error('[GHOSTLINE-DEBUG] qt.webChannelTransport is unavailable!');
             return;
         }
 
         // Try to initialize QWebChannel
+        console.log('[GHOSTLINE-DEBUG] Initializing QWebChannel...');
         new QWebChannel(qt.webChannelTransport, function(channel) {
+            console.log('[GHOSTLINE-DEBUG] QWebChannel callback received');
+            console.log('[GHOSTLINE-DEBUG] channel.objects =', Object.keys(channel.objects));
             window.ghostline = channel.objects.ghostline;
-            // Now that window.ghostline is set, call debug
-            if (window.ghostline && typeof window.ghostline.debug === 'function') {
-                var objs = Object.keys(channel.objects).join(',');
-                window.ghostline.debug('QWebChannel ready: test_ran=' + testRan + ', objects=[' + objs + ']');
-            }
+            console.log('[GHOSTLINE-DEBUG] window.ghostline set successfully');
         });
     } catch (e) {
-        if (window.ghostline && typeof window.ghostline.debug === 'function') {
-            window.ghostline.debug('Exception: ' + e.toString());
-        }
+        console.error('[GHOSTLINE-DEBUG] Exception in initialization script:', e);
     }
 })();
 """)
