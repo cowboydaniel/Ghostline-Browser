@@ -370,13 +370,13 @@ class APIGateGenerator:
   const originalWebGPU = navigator.gpu;
   Object.defineProperty(navigator, 'gpu', {
     get: () => undefined,
+    set: () => {},
     configurable: false,
     enumerable: true
   });
   // Preserve property visibility while ensuring callers receive undefined
-  if (originalWebGPU !== undefined) {
-    navigator.gpu = undefined;
-  }
+  // without triggering assignment errors on accessor-only properties
+  void originalWebGPU;
 """)
 
         # Block AudioContext if not allowed
