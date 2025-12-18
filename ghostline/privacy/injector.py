@@ -548,6 +548,8 @@ class TimezoneSpoofGenerator:
   });
 
   // Override Intl.DateTimeFormat to always use UTC
+  const OriginalResolvedOptions = OriginalIntlDateTimeFormat.prototype.resolvedOptions;
+
   Intl.DateTimeFormat = new Proxy(OriginalIntlDateTimeFormat, {
     construct(target, args) {
       const locale = args[0] || 'en-US';
@@ -556,30 +558,37 @@ class TimezoneSpoofGenerator:
       // Force UTC timezone
       const modifiedOptions = Object.assign({}, options, { timeZone: 'UTC' });
 
+      let instance;
       try {
-        return Reflect.construct(target, [locale, modifiedOptions]);
+        instance = Reflect.construct(target, [locale, modifiedOptions]);
       } catch(e) {
-        return new target(locale, modifiedOptions);
+        instance = new target(locale, modifiedOptions);
       }
+
+      // Wrap resolvedOptions to ensure UTC is always reported
+      if (OriginalResolvedOptions) {
+        const wrappedResolvedOptions = function() {
+          const result = OriginalResolvedOptions.call(this);
+          if (result && typeof result === 'object') {
+            result.timeZone = 'UTC';
+          }
+          return result;
+        };
+
+        Object.defineProperty(instance, 'resolvedOptions', {
+          value: wrappedResolvedOptions,
+          writable: true,
+          configurable: true
+        });
+      }
+
+      return instance;
     }
   });
 
-  // Preserve static methods and properties
-  Intl.DateTimeFormat.prototype = OriginalIntlDateTimeFormat.prototype;
+  // Preserve static methods
   if (OriginalIntlDateTimeFormat.supportedLocalesOf) {
     Intl.DateTimeFormat.supportedLocalesOf = OriginalIntlDateTimeFormat.supportedLocalesOf;
-  }
-
-  // Override resolvedOptions to ensure UTC is always reported
-  const OriginalResolvedOptions = OriginalIntlDateTimeFormat.prototype.resolvedOptions;
-  if (OriginalResolvedOptions) {
-    OriginalIntlDateTimeFormat.prototype.resolvedOptions = function() {
-      const result = OriginalResolvedOptions.call(this);
-      if (result && typeof result === 'object') {
-        result.timeZone = 'UTC';
-      }
-      return result;
-    };
   }
 """
         return js_code
