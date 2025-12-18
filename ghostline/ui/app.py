@@ -73,6 +73,11 @@ class GhostlineWebBridge(QObject):
         self.window = window
 
     @Slot(str)
+    def debug(self, message: str) -> None:
+        """Handle debug messages from JavaScript."""
+        print(f"[JS-DEBUG] {message}", flush=True)
+
+    @Slot(str)
     def action(self, action_name: str) -> None:
         """Handle actions from JavaScript."""
         LOGGER.info("bridge_action_received", extra={"action": action_name})
@@ -477,6 +482,15 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
             print(f"[WEBCHANNEL] ERROR: qwebchannel.js not found at {qwebchannel_file}", flush=True)
             qwebchannel_code = "console.log('[QWebChannel] Library not found');"
 
+        # Add a test script before qwebchannel to see if scripts are executing
+        test_script = QWebEngineScript()
+        test_script.setName(f"ghostline-test-{tab_index}")
+        test_script.setSourceCode("window.__ghostline_test_ran = true;")
+        test_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        test_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        test_script.setRunsOnSubFrames(False)
+        scripts.insert(test_script)
+
         qwebchannel_lib_script.setSourceCode(qwebchannel_code)
         qwebchannel_lib_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         qwebchannel_lib_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
@@ -489,22 +503,39 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         script.setName(script_name)
         script.setSourceCode("""
 (function() {
-    console.log('[Ghostline-Init] Running');
-    if (typeof QWebChannel === 'undefined') {
-        console.log('[Ghostline-Init] ERROR: QWebChannel undefined');
-        return;
+    try {
+        // Check if document creation scripts ran
+        var testRan = !!window.__ghostline_test_ran;
+
+        if (typeof QWebChannel === 'undefined') {
+            // Try to call debug via ghostline if available
+            if (window.ghostline && typeof window.ghostline.debug === 'function') {
+                window.ghostline.debug('At DocumentReady: test_ran=' + testRan + ', QWebChannel=undefined');
+            }
+            return;
+        }
+
+        if (typeof qt === 'undefined' || typeof qt.webChannelTransport === 'undefined') {
+            if (window.ghostline && typeof window.ghostline.debug === 'function') {
+                window.ghostline.debug('At DocumentReady: test_ran=' + testRan + ', qt.webChannelTransport=undefined');
+            }
+            return;
+        }
+
+        // Try to initialize QWebChannel
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            window.ghostline = channel.objects.ghostline;
+            // Now that window.ghostline is set, call debug
+            if (window.ghostline && typeof window.ghostline.debug === 'function') {
+                var objs = Object.keys(channel.objects).join(',');
+                window.ghostline.debug('QWebChannel ready: test_ran=' + testRan + ', objects=[' + objs + ']');
+            }
+        });
+    } catch (e) {
+        if (window.ghostline && typeof window.ghostline.debug === 'function') {
+            window.ghostline.debug('Exception: ' + e.toString());
+        }
     }
-    if (typeof qt === 'undefined' || typeof qt.webChannelTransport === 'undefined') {
-        console.log('[Ghostline-Init] ERROR: qt.webChannelTransport undefined');
-        return;
-    }
-    console.log('[Ghostline-Init] Creating QWebChannel instance');
-    new QWebChannel(qt.webChannelTransport, function(channel) {
-        console.log('[Ghostline-Init] QWebChannel callback');
-        console.log('[Ghostline-Init] Objects:', Object.keys(channel.objects));
-        window.ghostline = channel.objects.ghostline;
-        console.log('[Ghostline-Init] window.ghostline set:', !!window.ghostline);
-    });
 })();
 """)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
