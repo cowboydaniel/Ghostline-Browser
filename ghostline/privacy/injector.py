@@ -210,7 +210,11 @@ class UserAgentDataSpoofGenerator:
 
 
 class CanvasNoiseGenerator:
-    """Generates JavaScript to inject deterministic noise into canvas operations."""
+    """Generates JavaScript to inject noise into canvas operations.
+
+    Uses a combination of deterministic base noise and per-call randomization
+    to prevent canvas fingerprinting while maintaining some consistency per origin.
+    """
 
     @staticmethod
     def generate(noise: Dict[str, float]) -> str:
@@ -232,18 +236,34 @@ class CanvasNoiseGenerator:
   // CANVAS FINGERPRINT NOISE INJECTION
   // ═══════════════════════════════════════════════════════
 
+  // Seed-based PRNG for per-call randomization
+  let canvasNoiseCallCounter = 0;
+  function seedableRandom(seed) {{
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }}
+
   const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
   CanvasRenderingContext2D.prototype.getImageData = function(...args) {{
     const imageData = originalGetImageData.apply(this, args);
 
-    // Apply deterministic noise to prevent canvas fingerprinting
-    const noise = {{r: {r_noise}, g: {g_noise}, b: {b_noise}, a: {a_noise}}};
+    // Base deterministic noise (per-origin)
+    const baseNoise = {{r: {r_noise}, g: {g_noise}, b: {b_noise}, a: {a_noise}}};
+
+    // Per-call pseudo-random noise component (makes each call unique)
+    const callSeed = canvasNoiseCallCounter++ * 73856093 ^ (Math.random() * 0xffffffff | 0);
 
     for (let i = 0; i < imageData.data.length; i += 4) {{
-      imageData.data[i] = Math.max(0, Math.min(255, imageData.data[i] + noise.r * 255));       // R
-      imageData.data[i+1] = Math.max(0, Math.min(255, imageData.data[i+1] + noise.g * 255));   // G
-      imageData.data[i+2] = Math.max(0, Math.min(255, imageData.data[i+2] + noise.b * 255));   // B
-      imageData.data[i+3] = Math.max(0, Math.min(255, imageData.data[i+3] + noise.a * 255));   // A
+      // Combine base noise with per-call randomization
+      const rRandom = (seedableRandom(callSeed + i) - 0.5) * 0.5;
+      const gRandom = (seedableRandom(callSeed + i + 1) - 0.5) * 0.5;
+      const bRandom = (seedableRandom(callSeed + i + 2) - 0.5) * 0.5;
+      const aRandom = (seedableRandom(callSeed + i + 3) - 0.5) * 0.25;
+
+      imageData.data[i] = Math.max(0, Math.min(255, imageData.data[i] + (baseNoise.r + rRandom) * 255));       // R
+      imageData.data[i+1] = Math.max(0, Math.min(255, imageData.data[i+1] + (baseNoise.g + gRandom) * 255));   // G
+      imageData.data[i+2] = Math.max(0, Math.min(255, imageData.data[i+2] + (baseNoise.b + bRandom) * 255));   // B
+      imageData.data[i+3] = Math.max(0, Math.min(255, imageData.data[i+3] + (baseNoise.a + aRandom) * 255));   // A
     }}
 
     return imageData;

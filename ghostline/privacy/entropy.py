@@ -133,7 +133,7 @@ class DeviceRandomizer:
 class NoiseCalibrator:
     """Generates deterministic canvas and audio noise with calibrated amplitude."""
 
-    amplitude: float = 0.2
+    amplitude: float = 1.0
     seed_secret: str = "ghostline-noise"
 
     def _rng_for_origin(self, origin: str) -> random.Random:
