@@ -4,9 +4,12 @@
  */
 
 (function() {
+    console.log('[GHOSTLINE-DEBUG-IIFE-START] IIFE starting, typeof QWebChannel =', typeof QWebChannel);
     if (typeof QWebChannel !== 'undefined') {
+        console.log('[GHOSTLINE-DEBUG-IIFE-START] Early return - QWebChannel already defined');
         return; // Already loaded
     }
+    console.log('[GHOSTLINE-DEBUG-IIFE-START] Passed early return check, will define QWebChannel');
 
     function QWebChannel(transport, initCallback) {
         if (typeof transport !== 'object') {
