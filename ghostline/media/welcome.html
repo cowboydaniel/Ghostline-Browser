@@ -550,36 +550,39 @@
 
   <script>
     // Debug: log when page loads
-    console.log("[Ghostline] Welcome page loaded, checking for QWebChannel...");
-    console.log("[Ghostline] window.ghostline:", typeof window.ghostline);
+    console.log("[Ghostline] Welcome page loaded");
+    console.log("[Ghostline] typeof QWebChannel:", typeof QWebChannel);
+    console.log("[Ghostline] typeof qt:", typeof qt);
+    console.log("[Ghostline] qt.webChannelTransport available:", typeof qt !== 'undefined' && typeof qt.webChannelTransport !== 'undefined');
 
     // Hook these actions into your PySide6 / QtWebEngine bridge.
     // Example: expose a QWebChannel object as `window.ghostline`.
     function ghostlineAction(action){
       console.log("[Ghostline] ghostlineAction called with:", action);
-      console.log("[Ghostline] window.ghostline exists:", !!window.ghostline);
+      console.log("[Ghostline] window.ghostline available:", !!window.ghostline);
       try{
         if (window.ghostline && typeof window.ghostline.action === "function"){
-          console.log("[Ghostline] Calling bridge action...");
+          console.log("[Ghostline] Calling bridge action:", action);
           window.ghostline.action(action);
         } else {
-          console.log("[Ghostline] action fallback:", action);
+          console.log("[Ghostline] Bridge not available, showing fallback");
           flashTip(action);
         }
       } catch (e){
-        console.log("[Ghostline] action error:", e);
+        console.error("[Ghostline] action error:", e);
       }
     }
 
     // Wait for web channel to be ready
     let webChannelReady = false;
     const checkWebChannel = setInterval(() => {
+      console.log("[Ghostline] Checking for web channel... ghostline:", !!window.ghostline);
       if (window.ghostline) {
-        console.log("[Ghostline] Web channel is ready!");
+        console.log("[Ghostline] Web channel is READY!");
         webChannelReady = true;
         clearInterval(checkWebChannel);
       }
-    }, 100);
+    }, 500);
 
     const tips = [
       "Tip: Press Ctrl L to jump to the address bar.",

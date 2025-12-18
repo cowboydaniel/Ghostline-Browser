@@ -460,8 +460,9 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
             if script.name() in (script_name, qwebchannel_script_name):
                 scripts.remove(script)
 
+        print(f"[WEBCHANNEL] Installing for tab {tab_index}", flush=True)
+
         # First, inject the QWebChannel library at DocumentCreation
-        # This ensures it's available before the page's own scripts run
         qwebchannel_lib_script = QWebEngineScript()
         qwebchannel_lib_script.setName(qwebchannel_script_name)
 
@@ -471,8 +472,9 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
 
         if qwebchannel_file.exists():
             qwebchannel_code = qwebchannel_file.read_text()
+            print(f"[WEBCHANNEL] Loaded qwebchannel.js ({len(qwebchannel_code)} bytes)", flush=True)
         else:
-            # Fallback minimal implementation
+            print(f"[WEBCHANNEL] ERROR: qwebchannel.js not found at {qwebchannel_file}", flush=True)
             qwebchannel_code = "console.log('[QWebChannel] Library not found');"
 
         qwebchannel_lib_script.setSourceCode(qwebchannel_code)
@@ -480,30 +482,38 @@ if (window.location.protocol !== 'about:' && window.location.protocol !== 'data:
         qwebchannel_lib_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         qwebchannel_lib_script.setRunsOnSubFrames(False)
         scripts.insert(qwebchannel_lib_script)
+        print(f"[WEBCHANNEL] QWebChannel library script injected at DocumentCreation", flush=True)
 
         # Then, inject the initialization script at DocumentReady
-        # This runs after the QWebChannel library is loaded and the page is ready
         script = QWebEngineScript()
         script.setName(script_name)
         script.setSourceCode("""
-if (typeof QWebChannel !== 'undefined' && qt && qt.webChannelTransport) {
+(function() {
+    console.log('[Ghostline-Init] Running');
+    if (typeof QWebChannel === 'undefined') {
+        console.log('[Ghostline-Init] ERROR: QWebChannel undefined');
+        return;
+    }
+    if (typeof qt === 'undefined' || typeof qt.webChannelTransport === 'undefined') {
+        console.log('[Ghostline-Init] ERROR: qt.webChannelTransport undefined');
+        return;
+    }
+    console.log('[Ghostline-Init] Creating QWebChannel instance');
     new QWebChannel(qt.webChannelTransport, function(channel) {
+        console.log('[Ghostline-Init] QWebChannel callback');
+        console.log('[Ghostline-Init] Objects:', Object.keys(channel.objects));
         window.ghostline = channel.objects.ghostline;
-        console.log('[Ghostline] Web channel ready!');
+        console.log('[Ghostline-Init] window.ghostline set:', !!window.ghostline);
     });
-} else {
-    console.log('[Ghostline] QWebChannel or transport not available');
-    console.log('[Ghostline] QWebChannel type:', typeof QWebChannel);
-    console.log('[Ghostline] qt type:', typeof qt);
-}
+})();
 """)
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         script.setRunsOnSubFrames(False)
-
         scripts.insert(script)
+        print(f"[WEBCHANNEL] Initialization script injected at DocumentReady", flush=True)
+
         LOGGER.info("web_channel_script_installed", extra={"tab_index": tab_index})
-        print(f"[WEBCHANNEL] Script installed for tab {tab_index}", flush=True)
 
     def _open_settings(self) -> None:
         """Open settings in a new tab."""
