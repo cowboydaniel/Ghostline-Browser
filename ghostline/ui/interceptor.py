@@ -20,13 +20,13 @@ class MimeTypeFixInterceptor(QWebEngineUrlRequestInterceptor):
 
 
 class WelcomePageSchemeHandler(QWebEngineUrlSchemeHandler):
-    """Handles about:welcome requests by serving the welcome page HTML."""
+    """Handles ghostline:welcome requests by serving the welcome page HTML."""
 
     def requestStarted(self, request):
-        """Handle requests for about:welcome."""
+        """Handle requests for ghostline:welcome."""
         url = request.requestUrl().toString()
 
-        if url == "about:welcome":
+        if url == "ghostline:welcome":
             # Read the welcome.html file
             media_dir = Path(__file__).parent.parent / "media"
             welcome_file = media_dir / "welcome.html"
