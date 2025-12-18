@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QKeySequence
@@ -23,6 +24,13 @@ from .components import NavigationBar, SettingsDialog
 LOGGER = logging.getLogger(__name__)
 
 
+def _get_welcome_page_url() -> str:
+    """Get the file:// URL for the welcome page."""
+    media_dir = Path(__file__).parent.parent / "media"
+    welcome_file = media_dir / "welcome.html"
+    return welcome_file.as_uri()
+
+
 class BrowserTab:
     """Wrapper for a web view tab with associated metadata."""
 
@@ -35,7 +43,9 @@ class BrowserTab:
 class GhostlineWindow(QMainWindow):
     """Hardened browser shell with typed signals and status surfaces."""
 
-    def __init__(self, home_url: str = "https://www.example.com") -> None:
+    def __init__(self, home_url: str | None = None) -> None:
+        if home_url is None:
+            home_url = _get_welcome_page_url()
         super().__init__()
         self.setWindowTitle("Ghostline Browser")
         self.resize(1280, 800)
