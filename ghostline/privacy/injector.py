@@ -31,10 +31,61 @@ class NavigatorSpoofGenerator:
         memory_gb = device.get('memory_gb', 8)
         cores = 4 if memory_gb <= 4 else (8 if memory_gb <= 8 else 16)
 
+        # appVersion is userAgent without the "Mozilla/" prefix
+        app_version = user_agent.replace('Mozilla/', '') if user_agent.startswith('Mozilla/') else user_agent
+
         js_code = f"""
   // ═══════════════════════════════════════════════════════
   // NAVIGATOR SPOOFING
   // ═══════════════════════════════════════════════════════
+
+  Object.defineProperty(navigator, 'userAgent', {{
+    get: () => '{user_agent}',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'appVersion', {{
+    get: () => '{app_version}',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'appCodeName', {{
+    get: () => 'Mozilla',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'appName', {{
+    get: () => 'Netscape',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'product', {{
+    get: () => 'Gecko',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'productSub', {{
+    get: () => '20030107',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'vendor', {{
+    get: () => 'Google Inc.',
+    configurable: false,
+    enumerable: true
+  }});
+
+  Object.defineProperty(navigator, 'vendorSub', {{
+    get: () => '',
+    configurable: false,
+    enumerable: true
+  }});
 
   Object.defineProperty(navigator, 'platform', {{
     get: () => '{platform} x86_64',
@@ -53,9 +104,104 @@ class NavigatorSpoofGenerator:
     configurable: false,
     enumerable: true
   }});
+"""
+        return js_code
 
-  Object.defineProperty(navigator, 'userAgent', {{
-    get: () => '{user_agent}',
+
+class PluginsAndMimeTypesSpoofGenerator:
+    """Generates JavaScript to spoof navigator.plugins and navigator.mimeTypes."""
+
+    @staticmethod
+    def generate() -> str:
+        """Generate plugins and mimeTypes spoofing JavaScript.
+
+        Returns:
+            JavaScript code that returns empty/generic plugins list
+        """
+        # Return empty plugins/mimeTypes to avoid fingerprinting via installed plugins
+        js_code = """
+  // ═══════════════════════════════════════════════════════
+  // PLUGINS AND MIME TYPES SPOOFING
+  // ═══════════════════════════════════════════════════════
+
+  // Override navigator.plugins with an empty list-like object
+  const emptyPluginArray = {
+    length: 0,
+    item: function(index) { return null; },
+    namedItem: function(name) { return null; },
+    refresh: function() { },
+    [Symbol.iterator]: function*() { }
+  };
+
+  Object.defineProperty(navigator, 'plugins', {
+    get: () => emptyPluginArray,
+    configurable: false,
+    enumerable: true
+  });
+
+  // Override navigator.mimeTypes with an empty list-like object
+  const emptyMimeTypes = {
+    length: 0,
+    item: function(index) { return null; },
+    namedItem: function(name) { return null; },
+    [Symbol.iterator]: function*() { }
+  };
+
+  Object.defineProperty(navigator, 'mimeTypes', {
+    get: () => emptyMimeTypes,
+    configurable: false,
+    enumerable: true
+  });
+"""
+        return js_code
+
+
+class UserAgentDataSpoofGenerator:
+    """Generates JavaScript to spoof navigator.userAgentData (Client Hints API)."""
+
+    @staticmethod
+    def generate(platform: str) -> str:
+        """Generate userAgentData spoofing JavaScript.
+
+        Args:
+            platform: Platform string to report (e.g., "Windows", "macOS", "Linux")
+
+        Returns:
+            JavaScript code that overrides navigator.userAgentData
+        """
+        # Extract major version from platform if needed
+        major_version = "134"  # Match modern Chromium version
+
+        js_code = f"""
+  // ═══════════════════════════════════════════════════════
+  // USER AGENT DATA (CLIENT HINTS API) SPOOFING
+  // ═══════════════════════════════════════════════════════
+
+  const spoofedUserAgentData = {{
+    brands: [
+      {{ brand: "Not:A-Brand", version: "24" }},
+      {{ brand: "Chromium", version: "{major_version}" }}
+    ],
+    mobile: false,
+    platform: "{platform}",
+    platformVersion: "10.0.0",
+    architecture: "x86",
+    bitness: "64",
+    wow64: false,
+    model: "",
+    uaFullVersion: "{major_version}.0.6998.208",
+    fullVersionList: [
+      {{ brand: "Not:A-Brand", version: "24.0.0.0" }},
+      {{ brand: "Chromium", version: "{major_version}.0.6998.208" }}
+    ],
+    formFactors: ["Desktop"],
+    getHighEntropyValues: async function(hints) {{
+      return spoofedUserAgentData;
+    }}
+  }};
+
+  Object.defineProperty(navigator, 'userAgentData', {{
+    get: () => spoofedUserAgentData,
     configurable: false,
     enumerable: true
   }});
@@ -387,51 +533,54 @@ class TimezoneSpoofGenerator:
   // TIMEZONE SPOOFING (UTC)
   // ═══════════════════════════════════════════════════════
 
+  // Store original implementations
   const OriginalDate = Date;
+  const OriginalIntlDateTimeFormat = Intl.DateTimeFormat;
 
-  Date = new Proxy(OriginalDate, {
-    construct(target, args) {
-      const date = args.length === 0 ? new target() : new target(...args);
-
-      // Override getTimezoneOffset to return 0 (UTC)
-      date.getTimezoneOffset = function() { return 0; };
-
-      return date;
-    },
-    apply(target, thisArg, args) {
-      return new target(...args).toString();
-    }
-  });
-
-  // Copy static methods
-  Date.now = OriginalDate.now;
-  Date.parse = OriginalDate.parse;
-  Date.UTC = OriginalDate.UTC;
-  Date.prototype = OriginalDate.prototype;
-
-  // Override Date.prototype.getTimezoneOffset for all Date instances
+  // Override Date.prototype.getTimezoneOffset to return 0 (UTC)
   Object.defineProperty(Date.prototype, 'getTimezoneOffset', {
-    value: function() { return 0; },
-    writable: false,
-    configurable: false,
+    value: function() {
+      return 0;  // UTC has zero offset
+    },
+    writable: true,
+    configurable: true,
     enumerable: false
   });
 
-  // Override Intl.DateTimeFormat to use UTC
-  const OriginalDateTimeFormat = Intl.DateTimeFormat;
-  Intl.DateTimeFormat = new Proxy(OriginalDateTimeFormat, {
+  // Override Intl.DateTimeFormat to always use UTC
+  Intl.DateTimeFormat = new Proxy(OriginalIntlDateTimeFormat, {
     construct(target, args) {
-      if (!args || args.length === 0) {
-        return new target('en-US', { timeZone: 'UTC' });
+      const locale = args[0] || 'en-US';
+      const options = args[1] || {};
+
+      // Force UTC timezone
+      const modifiedOptions = Object.assign({}, options, { timeZone: 'UTC' });
+
+      try {
+        return Reflect.construct(target, [locale, modifiedOptions]);
+      } catch(e) {
+        return new target(locale, modifiedOptions);
       }
-      const [locale, options] = args;
-      const modifiedOptions = { ...(options || {}), timeZone: 'UTC' };
-      return new target(locale, modifiedOptions);
     }
   });
 
-  Intl.DateTimeFormat.prototype = OriginalDateTimeFormat.prototype;
-  Intl.DateTimeFormat.supportedLocalesOf = OriginalDateTimeFormat.supportedLocalesOf;
+  // Preserve static methods and properties
+  Intl.DateTimeFormat.prototype = OriginalIntlDateTimeFormat.prototype;
+  if (OriginalIntlDateTimeFormat.supportedLocalesOf) {
+    Intl.DateTimeFormat.supportedLocalesOf = OriginalIntlDateTimeFormat.supportedLocalesOf;
+  }
+
+  // Override resolvedOptions to ensure UTC is always reported
+  const OriginalResolvedOptions = OriginalIntlDateTimeFormat.prototype.resolvedOptions;
+  if (OriginalResolvedOptions) {
+    OriginalIntlDateTimeFormat.prototype.resolvedOptions = function() {
+      const result = OriginalResolvedOptions.call(this);
+      if (result && typeof result === 'object') {
+        result.timeZone = 'UTC';
+      }
+      return result;
+    };
+  }
 """
         return js_code
 
@@ -608,6 +757,7 @@ class FingerprintInjector:
         noise = config['noise']
         gating = config['gating']
         user_agent = config['user_agent']
+        platform = config.get('platform', 'Linux')
         locale = config.get('locale', 'en-US')
         screen_config = config.get('screen', {})
 
@@ -627,6 +777,8 @@ class FingerprintInjector:
 
         # Add all protection modules
         script_parts.append(NavigatorSpoofGenerator.generate(device, user_agent))
+        script_parts.append(UserAgentDataSpoofGenerator.generate(platform))
+        script_parts.append(PluginsAndMimeTypesSpoofGenerator.generate())
         script_parts.append(LanguageSpoofGenerator.generate(locale))
         script_parts.append(ScreenDimensionSpoofGenerator.generate(screen_config))
         script_parts.append(TimezoneSpoofGenerator.generate(spoof_enabled=True))
@@ -683,6 +835,7 @@ class FingerprintInjector:
             'gating': gating,
             'origin': origin,
             'user_agent': user_agent,
+            'platform': platform,
             'locale': locale,
             'screen': screen_config,
         }
@@ -691,6 +844,8 @@ class FingerprintInjector:
 __all__ = [
     'FingerprintInjector',
     'NavigatorSpoofGenerator',
+    'UserAgentDataSpoofGenerator',
+    'PluginsAndMimeTypesSpoofGenerator',
     'CanvasNoiseGenerator',
     'WebGLSpoofGenerator',
     'APIGateGenerator',
